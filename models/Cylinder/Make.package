@@ -1,0 +1,2 @@
+CEXE_headers += prob.H userfuncs.H externbc.H thermo.H species.H transport.H chemistry.H insideIB.H
+CEXE_sources += userfuncs.cpp species.cpp
