@@ -11,6 +11,7 @@
 #define half 0.5
 #define eighth 0.125
 #define sixteenth 0.0625
+#define twelveth 0.08333333333
 #define fourth 0.25
 #define tenth 0.1
 #define threetenth 0.3
