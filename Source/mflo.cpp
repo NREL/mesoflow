@@ -288,6 +288,8 @@ void mflo::ReadParameters()
         pp.query("solve_navier_stokes",do_ns);
         pp.query("track_residual_norms",track_residual_norms);
         pp.query("using_bg_inertgas",using_bg_inertgas);
+        pp.query("order_hyp",order_hyp);
+        pp.query("dissfactor",dissfactor);
     }
 }
 

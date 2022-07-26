@@ -83,9 +83,7 @@ Real mflo::EstTimeStep(int lev)
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
             {
                 wavespeed_array(i,j,k,0) = zeroval;
-#ifdef IMM_BOUNDARY
                 if(state_array(i,j,k,VFRAC_INDX) > zeroval)
-#endif
                 {
                     Real fluid_speed = sqrt(
                     state_array(i, j, k, VELX_INDX) *

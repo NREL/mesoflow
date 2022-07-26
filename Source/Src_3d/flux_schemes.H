@@ -263,158 +263,56 @@ void ausmp_up_flux(Real ul[NCVARS+NUM_SPECIES],Real ur[NCVARS+NUM_SPECIES],
     fhalf[RHOW_IND] +=  p_half*nz;
 
 }
-
-AMREX_GPU_DEVICE
-AMREX_FORCE_INLINE
-void correct_vels_x(Real &u1_x, Real &u2_x, Real &u1_y, Real &u2_y, Real &u1_z, Real &u2_z,
-        Real vfrac1, Real vfrac2, Real vfrac3, Real vfrac4, Real vfrac5, Real vfrac6)
+//==========================================================================================
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void central_with_diss_flux(Real uim1[NCVARS+NUM_SPECIES],Real ui[NCVARS+NUM_SPECIES],
+                            Real uim2[NCVARS+NUM_SPECIES],Real uip1[NCVARS+NUM_SPECIES],
+        Real fhalf[NCVARS+NUM_SPECIES],Real n[AMREX_SPACEDIM],Real dissfactor)
 {
-    if(vfrac1 < one) u1_x=-u2_x;
-    if(vfrac2 < one) u2_x=-u1_x;
+    Real fim1[NCVARS],fi[NCVARS],
+         fim2[NCVARS],fip1[NCVARS];
+    Real presL,presR;
+    Real rhoL,rhoR;
+    Real ahalf;
+    Real veln_L,veln_R,veln;
+    Real fourth_order_flux,fourth_order_diss;
+    Real rhoeL,rhoeR,gamaL,gamaR;
 
-    if(vfrac3 < one) u1_y=zeroval;
-    if(vfrac4 < one) u2_y=zeroval;
+    geteulerflux(uim2,fim2,n);
+    geteulerflux(uim1,fim1,n);
+    geteulerflux(ui,fi,n);
+    geteulerflux(uip1,fip1,n);
 
-    if(vfrac5 < one) u1_z=zeroval;
-    if(vfrac6 < one) u2_z=zeroval;
-}
-
-AMREX_GPU_DEVICE
-AMREX_FORCE_INLINE
-void correct_vels_y(Real &u1_x, Real &u2_x, Real &u1_y, Real &u2_y, Real &u1_z, Real &u2_z,
-        Real vfrac1,Real vfrac2, Real vfrac3, Real vfrac4, Real vfrac5, Real vfrac6)
-{
-    if(vfrac1 < one) u1_x=zeroval;
-    if(vfrac2 < one) u2_x=zeroval;
-
-    if(vfrac3 < one) u1_y=-u2_y;
-    if(vfrac4 < one) u2_y=-u1_y;
-
-    if(vfrac5 < one) u1_z=zeroval;
-    if(vfrac6 < one) u2_z=zeroval;
-}
-
-AMREX_GPU_DEVICE
-AMREX_FORCE_INLINE
-void correct_vels_z(Real &u1_x, Real &u2_x, Real &u1_y, Real &u2_y, Real &u1_z, Real &u2_z,
-        Real vfrac1,Real vfrac2, Real vfrac3, Real vfrac4, Real vfrac5, Real vfrac6)
-{
-    if(vfrac1 < one) u1_x=zeroval;
-    if(vfrac2 < one) u2_x=zeroval;
-
-    if(vfrac3 < one) u1_y=zeroval;
-    if(vfrac4 < one) u2_y=zeroval;
-
-    if(vfrac5 < one) u1_z=-u2_z;
-    if(vfrac6 < one) u2_z=-u1_z;
-}
-
-AMREX_GPU_DEVICE
-    AMREX_FORCE_INLINE
-void viscous_stencil_x(int i,int j,int k,Array4<Real> phi,int veldir, GpuArray<Real, AMREX_SPACEDIM> dx,
-        Real &ddx,Real &ddy,Real &ddz)
-{
-    Real u1_x,u2_x,u1_y,u2_y,u1_z,u2_z,umid;
-    Real vfrac1,vfrac2,vfrac3,vfrac4,vfrac5,vfrac6;
-
-    vfrac1=phi(i-1,j,k,VFRAC_INDX);
-    vfrac2=phi(i,j,k,VFRAC_INDX);
-
-    vfrac3=half*(phi(i-1,j-1,k,VFRAC_INDX)+phi(i,j-1,k,VFRAC_INDX));
-    vfrac4=half*(phi(i-1,j+1,k,VFRAC_INDX)+phi(i,j+1,k,VFRAC_INDX));
+    rhoL=uim1[RHO_IND];
+    rhoR=ui[RHO_IND];
     
-    vfrac5=half*(phi(i-1,j,k-1,VFRAC_INDX)+phi(i,j,k-1,VFRAC_INDX));
-    vfrac6=half*(phi(i-1,j,k+1,VFRAC_INDX)+phi(i,j,k+1,VFRAC_INDX));
-
-
-    u1_x = phi(i-1,j,k,veldir);
-    u2_x = phi(i,j,k,veldir);
-    u1_y = half*(phi(i-1,j-1,k,veldir)+phi(i,j-1,k,veldir));
-    u2_y = half*(phi(i-1,j+1,k,veldir)+phi(i,j+1,k,veldir));
-    u1_z = half*(phi(i-1,j,k-1,veldir)+phi(i,j,k-1,veldir));
-    u2_z = half*(phi(i-1,j,k+1,veldir)+phi(i,j,k+1,veldir));
-
-#ifdef IMM_BOUNDARY
-    correct_vels_x(u1_x,u2_x,u1_y,u2_y,u1_z,u2_z,
-            vfrac1,vfrac2,vfrac3,vfrac4,vfrac5,vfrac6);
-#endif
+    rhoeL=uim1[RHOE_IND] - half*(uim1[RHOU_IND]*uim1[RHOU_IND] +
+                                 uim1[RHOV_IND]*uim1[RHOV_IND] +
+                                 uim1[RHOW_IND]*uim1[RHOW_IND])/uim1[RHO_IND];
     
-    ddx = (u2_x-u1_x)/dx[XDIR];
-    ddy = half*(u2_y - u1_y)/dx[YDIR];
-    ddz = half*(u2_z - u1_z)/dx[ZDIR];
+    rhoeR=ui[RHOE_IND] - half*(ui[RHOU_IND]*ui[RHOU_IND] +
+                               ui[RHOV_IND]*ui[RHOV_IND] +
+                               ui[RHOW_IND]*ui[RHOW_IND])/ui[RHO_IND];
+    
+    presL = mflo_thermo::get_p_from_rec(rhoeL,uim1[RHO_IND],uim1+NCVARS);
+    presR = mflo_thermo::get_p_from_rec(rhoeR,ui[RHO_IND],ui+NCVARS);
+
+    veln_L  = (uim1[RHOU_IND]*n[0] + uim1[RHOV_IND]*n[1] + uim1[RHOW_IND]*n[2])/uim1[RHO_IND];
+    veln_R  = (ui[RHOU_IND]*n[0] + ui[RHOV_IND]*n[1] + ui[RHOW_IND]*n[2])/ui[RHO_IND];
+
+    veln = std::max(fabs(veln_L),fabs(veln_R));
+    
+    gamaL=mflo_thermo::get_gama_from_rpc(rhoL,presL,uim1+NCVARS);
+    gamaR=mflo_thermo::get_gama_from_rpc(rhoR,presR,ui+NCVARS);
+
+    ahalf = std::max(sqrt(gamaL*presL/rhoL), sqrt(gamaR*presR/rhoR));
+
+    for(int i=0;i<NCVARS;i++)
+    {
+        fhalf[i] = twelveth*(7*fi[i]+7*fim1[i]-fim2[i]-fip1[i]);
+        fhalf[i] -= twelveth*(3*ui[i]-3*uim1[i]-uip1[i]+ui[i])*(veln+ahalf)*dissfactor;
+    }
+
 }
-
-AMREX_GPU_DEVICE
-    AMREX_FORCE_INLINE
-void viscous_stencil_y(int i,int j,int k,Array4<Real> phi,int veldir, GpuArray<Real, AMREX_SPACEDIM> dx,
-        Real &ddx,Real &ddy,Real &ddz)
-{
-    Real u1_x,u2_x,u1_y,u2_y,u1_z,u2_z,umid;
-    Real vfrac1,vfrac2,vfrac3,vfrac4,vfrac5,vfrac6;
-
-    vfrac1=half*(phi(i-1,j-1,k,VFRAC_INDX)+phi(i-1,j,k,VFRAC_INDX));
-    vfrac2=half*(phi(i+1,j-1,k,VFRAC_INDX)+phi(i+1,j,k,VFRAC_INDX));
-
-    vfrac3=phi(i,j-1,k,VFRAC_INDX);
-    vfrac4=phi(i,j,k,VFRAC_INDX);
-    
-    vfrac5=half*(phi(i,j-1,k-1,VFRAC_INDX)+phi(i,j,k-1,VFRAC_INDX));
-    vfrac6=half*(phi(i,j-1,k+1,VFRAC_INDX)+phi(i,j,k+1,VFRAC_INDX));
-
-
-    u1_x = half*(phi(i-1,j-1,k,veldir) + phi(i-1,j,k,veldir));
-    u2_x = half*(phi(i+1,j-1,k,veldir) + phi(i+1,j,k,veldir));
-
-    u1_y = phi(i,j-1,k,veldir);
-    u2_y = phi(i,j,k,veldir);
-
-    u1_z = half*(phi(i,j-1,k-1,veldir)+phi(i,j,k-1,veldir));
-    u2_z = half*(phi(i,j-1,k+1,veldir)+phi(i,j,k+1,veldir));
-
-#ifdef IMM_BOUNDARY
-    correct_vels_y(u1_x,u2_x,u1_y,u2_y,u1_z,u2_z,
-            vfrac1,vfrac2,vfrac3,vfrac4,vfrac5,vfrac6);
-#endif
-    
-    ddx = half*(u2_x-u1_x)/dx[XDIR];
-    ddy = (u2_y - u1_y)/dx[YDIR];
-    ddz = half*(u2_z - u1_z)/dx[ZDIR];
-}
-
-AMREX_GPU_DEVICE
-    AMREX_FORCE_INLINE
-void viscous_stencil_z(int i,int j,int k,Array4<Real> phi,int veldir, GpuArray<Real, AMREX_SPACEDIM> dx,
-        Real &ddx,Real &ddy,Real &ddz)
-{
-    Real u1_x,u2_x,u1_y,u2_y,u1_z,u2_z,umid;
-    Real vfrac1,vfrac2,vfrac3,vfrac4,vfrac5,vfrac6;
-
-    vfrac1=half*(phi(i-1,j,k-1,VFRAC_INDX)+phi(i-1,j,k,VFRAC_INDX));
-    vfrac2=half*(phi(i+1,j,k-1,VFRAC_INDX)+phi(i+1,j,k,VFRAC_INDX));
-
-    vfrac3=half*(phi(i,j-1,k-1,VFRAC_INDX)+phi(i,j-1,k,VFRAC_INDX));
-    vfrac4=half*(phi(i,j+1,k-1,VFRAC_INDX)+phi(i,j+1,k,VFRAC_INDX));
-    
-    vfrac5=phi(i,j,k-1,VFRAC_INDX);
-    vfrac6=phi(i,j,k,VFRAC_INDX);
-
-    u1_x = half*(phi(i-1,j,k-1,veldir) + phi(i-1,j,k,veldir));
-    u2_x = half*(phi(i+1,j,k-1,veldir) + phi(i+1,j,k,veldir));
-
-    u1_y = half*(phi(i,j-1,k-1,veldir) + phi(i,j-1,k,veldir));
-    u2_y = half*(phi(i,j+1,k-1,veldir) + phi(i,j+1,k,veldir));
-
-    u1_z = phi(i,j,k-1,veldir);
-    u2_z = phi(i,j,k,veldir);
-
-#ifdef IMM_BOUNDARY
-    correct_vels_z(u1_x,u2_x,u1_y,u2_y,u1_z,u2_z,
-            vfrac1,vfrac2,vfrac3,vfrac4,vfrac5,vfrac6);
-#endif
-    
-    ddx = half*(u2_x-u1_x)/dx[XDIR];
-    ddy = half*(u2_y - u1_y)/dx[YDIR];
-    ddz = (u2_z - u1_z)/dx[ZDIR];
-}
-
+//==========================================================================================
 #endif

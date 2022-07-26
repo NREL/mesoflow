@@ -11,10 +11,6 @@
 #include <AMReX_MemProfiler.H>
 #endif
 
-#ifdef IMM_BOUNDARY
-#include <insideIB.H>
-#endif
-
 #include <mflo.H>
 
 void mflo::Evolve_split(Real t_ss,Real t_react,Real dt_react,Real dt_react_rk,Real dt_ss)
@@ -88,10 +84,6 @@ void mflo::EvolveAMR(Real final_time, bool only_flow)
         {
             update_primitive_vars(l);
         }
-
-#ifdef IMM_BOUNDARY
-        set_immersed_cells(lev);
-#endif
 
         //print residuals
         if(track_residual_norms == 1)
@@ -171,30 +163,6 @@ void mflo::compute_residual_norms()
     }
 }
 
-#ifdef IMM_BOUNDARY
-void mflo::set_immersed_cells(int lev)
-{
-    MultiFab& S_new = phi_new[lev];
-    MultiFab& S_old = phi_old[lev];
-    
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    for (MFIter mfi(S_new, TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-       const Box& bx = mfi.tilebox();
-       Array4<Real> snew_arr = S_new.array(mfi);
-       Array4<Real> sold_arr = S_old.array(mfi);
-
-       amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
-       {
-                    set_ib_state(i, j, k, snew_arr);
-                    set_ib_state(i, j, k, sold_arr);
-       });
-    }
-}
-#endif
-
 void mflo::update_vars_after_chemsolve(int lev)
 {
     MultiFab& S_new = phi_new[lev];
@@ -212,9 +180,7 @@ void mflo::update_vars_after_chemsolve(int lev)
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
             {
-#ifdef IMM_BOUNDARY
                 if(snew_arr(i,j,k,VFRAC_INDX) >= one)
-#endif
                 {
                     Real u[NCVARS+NUM_SPECIES], p[NCVARS],spec[NUM_SPECIES];
                     for (int c = 0; c < NUM_SPECIES; c++) 
@@ -280,9 +246,7 @@ void mflo::store_inertgas_conc(int lev)
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
             {
-#ifdef IMM_BOUNDARY
                 if(snew_arr(i,j,k,VFRAC_INDX) >= one)
-#endif
                 {
                     Real spec[NUM_SPECIES];
                     for (int c = 0; c < NUM_SPECIES; c++) 
@@ -315,9 +279,7 @@ void mflo::update_primitive_vars(int lev)
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
             {
-#ifdef IMM_BOUNDARY
                 if(snew_arr(i,j,k,VFRAC_INDX) >= one)
-#endif
                 {
                     Real u[NCVARS+NUM_SPECIES], p[NCVARS];
 
@@ -558,6 +520,8 @@ void mflo::compute_dsdt_flow(
     bool nsflag=(do_ns==1)?true:false;
 
     int ncomp = Sborder.nComp();
+    int hyperbolics_order = order_hyp;
+    Real hyperbolics_dissfactor = dissfactor;
     dsdt.setVal(zeroval);
 
     // Build temporary multiFabs to work on.
@@ -598,13 +562,6 @@ void mflo::compute_dsdt_flow(
                     flux[0].array(mfi), flux[1].array(mfi), flux[2].array(mfi))};
             auto prob_lo = geom[lev].ProbLoArray();
 
-#ifdef IMM_BOUNDARY
-            amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
-            {
-                    set_ib_state(i, j, k, sborder_arr);
-            });
-#endif
-
             amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
             {
                 mflo_user_funcs::compute_fluid_transport(
@@ -625,25 +582,28 @@ void mflo::compute_dsdt_flow(
             amrex::ParallelFor(
                     amrex::growHi(bx, 0, 1),
                     [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                    compute_flux_x(
-                        i, j, k, sborder_arr, fluid_transport_arr, 
-                        specdiff_arr, flux_arr[0], dx, nsflag);
+                    compute_flux(
+                    i, j, k, XDIR, sborder_arr, fluid_transport_arr, 
+                    specdiff_arr, flux_arr[0], 
+                    dx, hyperbolics_order,hyperbolics_dissfactor,nsflag);
                 });
 
             amrex::ParallelFor(
                     amrex::growHi(bx, 1, 1),
                     [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                    compute_flux_y(
-                        i, j, k, sborder_arr, fluid_transport_arr, 
-                        specdiff_arr, flux_arr[1], dx, nsflag);
+                    compute_flux(
+                    i, j, k, YDIR, sborder_arr, fluid_transport_arr, 
+                    specdiff_arr, flux_arr[1], 
+                    dx, hyperbolics_order,hyperbolics_dissfactor,nsflag);
                 });
 
             amrex::ParallelFor(
                     amrex::growHi(bx, 2, 1),
                     [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                    compute_flux_z(
-                        i, j, k, sborder_arr, fluid_transport_arr, 
-                        specdiff_arr, flux_arr[2], dx, nsflag);
+                    compute_flux(
+                    i, j, k, ZDIR, sborder_arr, fluid_transport_arr, 
+                    specdiff_arr, flux_arr[2], 
+                    dx, hyperbolics_order,hyperbolics_dissfactor,nsflag);
                 });
 
             // update residual

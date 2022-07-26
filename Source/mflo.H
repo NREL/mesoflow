@@ -109,11 +109,6 @@ public:
     void update_primitive_vars(int lev);
     void store_inertgas_conc(int lev);
     void update_vars_after_chemsolve(int lev);
-
-#ifdef IMM_BOUNDARY
-    void set_immersed_cells(int lev);
-#endif
-
     void compute_residual_norms();
 
 private:
@@ -227,6 +222,8 @@ private:
     int regrid_int = 2;
 
     int wallbc_id = 6;
+    int order_hyp=2;
+    Real dissfactor=0.5;
 
     // hyperbolic refluxing as part of multilevel synchronization
     int do_reflux = 1;

@@ -9,6 +9,7 @@
 #include <consprim_funcs.H>
 #include <flux_schemes.H>
 #include <species.H>
+#include <ib_utils.H>
 
 using namespace amrex;
 
@@ -21,7 +22,8 @@ Real minmod_flux_limiter(Real r)
 
 AMREX_GPU_DEVICE
     AMREX_FORCE_INLINE
-void get_higherorder_states(Real uL[NCVARS+NUM_SPECIES],Real uR[NCVARS+NUM_SPECIES],Real uim2[NCVARS+NUM_SPECIES],Real uip1[NCVARS+NUM_SPECIES])
+void get_higherorder_states(Real uL[NCVARS+NUM_SPECIES],Real uR[NCVARS+NUM_SPECIES],
+                            Real uim2[NCVARS+NUM_SPECIES],Real uip1[NCVARS+NUM_SPECIES])
 {
     //refer to page 114,chap 4 in Blazek's textbook
 
@@ -54,146 +56,125 @@ void get_higherorder_states(Real uL[NCVARS+NUM_SPECIES],Real uR[NCVARS+NUM_SPECI
 }
 
 AMREX_GPU_DEVICE
-    AMREX_FORCE_INLINE
-void compute_flux_x(int i, int j, int k,
-        Array4<Real> const& phi, //state variable
-        Array4<Real> const& fluid_transpcoeffs,
-        Array4<Real> const& specdiff,
-        Array4<Real> const& fx,
-        const GpuArray<Real, AMREX_SPACEDIM>& dx,bool nsflag)
+AMREX_FORCE_INLINE
+void compute_flux(int i, int j, int k,int sweepdir,
+                  Array4<Real> const& phi, //state variable
+                  Array4<Real> const& fluid_transpcoeffs,
+                  Array4<Real> const& specdiff,
+                  Array4<Real> const& fx,
+                  const GpuArray<Real, AMREX_SPACEDIM>& dx,
+                  int hyperbolics_order,Real dissfactor,bool nsflag)
 {
+    //|--left1--|--left--|--right--|--right1--|
+    //|--(i-2)--|--(i-1)--|--i--|--(i+1)--|
+    //remember: face i separates (i-1) and i cells
 
     Real ul[NCVARS+NUM_SPECIES],ur[NCVARS+NUM_SPECIES];
+    Real fhalf[NCVARS+NUM_SPECIES]={zero};
     Real pl[NCVARS],pr[NCVARS];
-    Real normal[AMREX_SPACEDIM];
+    Real ulm1[NCVARS+NUM_SPECIES],urp1[NCVARS+NUM_SPECIES];
+    Real normal[AMREX_SPACEDIM]={zero};
+    Real gradu[3],gradv[3],gradw[3];
     Real dudx,dudy,dudz;
     Real dvdx,dvdy,dvdz;
     Real dwdx,dwdy,dwdz;
     Real delu;
-    Real dTdx;
+    Real dTdn;
     Real tau[AMREX_SPACEDIM][AMREX_SPACEDIM];
     Real visc,thcond;
+    Real spec_dcoeff[NUM_SPECIES];
 
-    normal[XDIR] = one;
-    normal[YDIR] = zeroval;
-    normal[ZDIR] = zeroval;
+    normal[sweepdir] = one;
 
-    Real fhalf[NCVARS+NUM_SPECIES]={zeroval};
+    IntVect left(i, j, k);
+    IntVect right(i, j, k);
+    IntVect left1(i, j, k);
+    IntVect right1(i, j, k);
 
-    visc   = half*( fluid_transpcoeffs(i,j,k,VISC_INDX)   + fluid_transpcoeffs(i-1,j,k,VISC_INDX)   );
-    thcond = half*( fluid_transpcoeffs(i,j,k,THCOND_INDX) + fluid_transpcoeffs(i-1,j,k,THCOND_INDX) );
+    IntVect top_left(i, j, k);
+    IntVect bot_left(i, j, k);
+    IntVect top_right(i, j, k);
+    IntVect bot_right(i, j, k);
 
-#ifdef IMM_BOUNDARY
-    Real vfrac_L=phi(i-1,j,k,VFRAC_INDX);
-    Real vfrac_R=phi(i,j,k,VFRAC_INDX);
-#endif
+    IntVect frt_left(i, j, k);
+    IntVect bck_left(i, j, k);
+    IntVect frt_right(i, j, k);
+    IntVect bck_right(i, j, k);
 
-    //face velocity
-    Real uface = half*(phi(i-1,j,k,VELX_INDX) + phi(i,j,k,VELX_INDX));
-    Real vface = half*(phi(i-1,j,k,VELY_INDX) + phi(i,j,k,VELY_INDX));
-    Real wface = half*(phi(i-1,j,k,VELZ_INDX) + phi(i,j,k,VELZ_INDX));
+    int trans1dir = (sweepdir + 1) % AMREX_SPACEDIM;
+    int trans2dir = (sweepdir + 2) % AMREX_SPACEDIM;
 
-#ifdef IMM_BOUNDARY
-        //vfrac is zeroval on left or right, then face vel is zeroval
-        if(vfrac_L == zeroval or vfrac_R == zeroval)
-        {
-                uface=zeroval;
-                vface=zeroval;
-                wface=zeroval;
-        }
-#endif
+    left[sweepdir]          -= 1;
+    top_left[sweepdir]      -= 1;
+    bot_left[sweepdir]      -= 1;
+    frt_left[sweepdir]      -= 1;
+    bck_left[sweepdir]      -= 1;
+
+    top_left[trans1dir]     += 1;
+    top_right[trans1dir]    += 1;
+    bot_left[trans1dir]     -= 1;
+    bot_right[trans1dir]    -= 1;
+
+    frt_left[trans2dir]     += 1;
+    frt_right[trans2dir]    += 1;
+    bck_left[trans2dir]     -= 1;
+    bck_right[trans2dir]    -= 1;
+
+    left1[sweepdir]         -= 2;
+    right1[sweepdir]        += 1;
+
+    //FIXME: do harmonic means
+    visc   = half*( fluid_transpcoeffs(left, VISC_INDX)   + fluid_transpcoeffs(right, VISC_INDX)   );
+    thcond = half*( fluid_transpcoeffs(left, THCOND_INDX) + fluid_transpcoeffs(right, THCOND_INDX) );
+
+    for(int sp=0;sp<NUM_SPECIES;sp++)
+    {
+        spec_dcoeff[sp]=half*(specdiff(left, sp) + specdiff(right, sp));
+    }
+
+    //viscous dissipation term
+    Real uface = half*(phi(left,VELX_INDX) + phi(right,VELX_INDX));
+    Real vface = half*(phi(left,VELY_INDX) + phi(right,VELY_INDX));
+    Real wface = half*(phi(left,VELZ_INDX) + phi(right,VELZ_INDX));
 
     if(nsflag)
-    {
-
+    {    
         for(int c=0;c<NCVARS;c++)
         {
-            ul[c+RHO_IND] = phi(i-1,j,k,c+RHO_INDX);
-            ur[c+RHO_IND] = phi(i  ,j,k,c+RHO_INDX);
+            ul[c+RHO_IND] = phi(left,c+RHO_INDX);
+            ur[c+RHO_IND] = phi(right,c+RHO_INDX);
+            ulm1[c+RHO_IND] = phi(left1,  c+RHO_INDX);
+            urp1[c+RHO_IND] = phi(right1, c+RHO_INDX);
         }
         for(int c=0;c<NUM_SPECIES;c++)
         {
-            ul[c+NCVARS] = phi(i-1,j,k,c+FLO_NVARS);
-            ur[c+NCVARS] = phi(i  ,j,k,c+FLO_NVARS);
+            ul[c+NCVARS] = phi(left,c+FLO_NVARS);
+            ur[c+NCVARS] = phi(right,c+FLO_NVARS);
+            ulm1[c+NCVARS] = phi(left1,c+FLO_NVARS);
+            urp1[c+NCVARS] = phi(right1,c+FLO_NVARS);
         }
 
-#ifdef IMM_BOUNDARY
-        if(vfrac_L > zeroval and vfrac_R > zeroval)
-#endif
+        if(   phi(right1,VFRAC_INDX) < one || phi(right,VFRAC_INDX) < one
+           || phi(left, VFRAC_INDX)  < one || phi(left1,VFRAC_INDX) < one)
         {
-
-#ifdef SEC_ORDER_FLUX
-
-#ifdef IMM_BOUNDARY
-            if(phi(i-2,j,k,VFRAC_INDX) > zeroval and phi(i+1,j,k,VFRAC_INDX) > zeroval)
-#endif
+            //make things first order
+            for(int c=0;c<(NCVARS+NUM_SPECIES);c++)
             {
-
-                Real ulm1[NCVARS+NUM_SPECIES],urp1[NCVARS+NUM_SPECIES];
-                for(int c=0;c<NCVARS;c++)
-                {
-                    ulm1[c+RHO_IND] = phi(i-2,j,k,c+RHO_INDX);
-                    urp1[c+RHO_IND] = phi(i+1,j,k,c+RHO_INDX);
-                }
-                for(int c=0;c<NUM_SPECIES;c++)
-                {
-                    ulm1[c+NCVARS] = phi(i-2,j,k,FLO_NVARS+c);
-                    urp1[c+NCVARS] = phi(i+1,j,k,FLO_NVARS+c);
-                }
-                get_higherorder_states(ul,ur,ulm1,urp1);
+                ulm1[c+RHO_IND]=ul[c+RHO_IND];
+                urp1[c+RHO_IND]=ur[c+RHO_IND];
             }
-#endif
         }
-#ifdef IMM_BOUNDARY
-        else if(vfrac_R == zeroval)
+        if(hyperbolics_order == 2)
         {
-            cons_to_prim(ul,pl);
-
-            pr[DENS_IND] =  pl[DENS_IND];
-            pr[VELX_IND] = -pl[VELX_IND];
-            pr[VELY_IND] = -pl[VELY_IND];
-            pr[VELZ_IND] = -pl[VELZ_IND];
-            pr[PRES_IND] =  pl[PRES_IND];
-
-            //zeroval gradient for species
-            //note: this is only to make sure
-            //rho,rhou,rhov,rhow,rhoe fluxes are correct
-            for(int c=0;c<NUM_SPECIES;c++)
-            {
-                ur[c+NCVARS] = ul[c+NCVARS];
-            }
-
-            prim_to_cons(ur,pr);
+            get_higherorder_states(ul,ur,ulm1,urp1);
+        }
+        if(hyperbolics_order < 4)
+        {
+            ausmp_up_flux(ul,ur,fhalf,normal);
         }
         else
         {
-            cons_to_prim(ur,pr);
-
-            pl[DENS_IND] =  pr[DENS_IND];
-            pl[VELX_IND] = -pr[VELX_IND];
-            pl[VELY_IND] = -pr[VELY_IND];
-            pl[VELZ_IND] = -pr[VELZ_IND];
-            pl[PRES_IND] =  pr[PRES_IND];
-
-            //zeroval gradient for species
-            //note: this is only to make sure
-            //rho,rhou,rhov,rhow,rhoe fluxes are correct
-            for(int c=0;c<NUM_SPECIES;c++)
-            {
-                ul[c+NCVARS] = ur[c+NCVARS];
-            }
-
-            prim_to_cons(ul,pl);
-        }
-#endif
-
-#ifdef IMM_BOUNDARY
-        //if both vfracs are 0 then fhalf should be 0
-        if(vfrac_L > zeroval or vfrac_R > zeroval)
-#endif
-        {
-           ausmp_up_flux(ul,ur,fhalf,normal);
-           //laxf_flux(ul,ur,fhalf,normal);
+            central_with_diss_flux(ul,ur,ulm1,urp1,fhalf,normal,dissfactor);
         }
 
         for(int c=0;c<NCVARS;c++)
@@ -201,530 +182,111 @@ void compute_flux_x(int i, int j, int k,
             fx(i,j,k,c+RHO_INDX) = fhalf[c+RHO_IND];
         }
 
-#ifdef IMM_BOUNDARY
-        //if both vfracs are 0 dont do anything
-        if(vfrac_L > zeroval or vfrac_R > zeroval)
-#endif
-        {
-            viscous_stencil_x(i,j,k,phi,VELX_INDX,dx,dudx,dudy,dudz);
-            viscous_stencil_x(i,j,k,phi,VELY_INDX,dx,dvdx,dvdy,dvdz);
-            viscous_stencil_x(i,j,k,phi,VELZ_INDX,dx,dwdx,dwdy,dwdz);
+        gradu[0]  = (phi(right,VELX_INDX) - phi(left,VELX_INDX))/dx[sweepdir];
 
-            dTdx = (phi(i,j,k,TEMP_INDX) - phi(i-1,j,k,TEMP_INDX))/dx[XDIR];
+        gradu[1] = ( half*(phi(top_left,VELX_INDX) + phi(top_right,VELX_INDX)) 
+                    - half*(phi(bot_left,VELX_INDX) + phi(bot_right,VELX_INDX)) )/(two*dx[trans1dir]);
 
-            delu = dudx + dvdy + dwdz;
+        gradu[2] = ( half*(phi(frt_left,VELX_INDX) + phi(frt_right,VELX_INDX)) 
+                    - half*(phi(bck_left,VELX_INDX) + phi(bck_right,VELX_INDX)) )/(two*dx[trans2dir]);
 
-            tau[XDIR][XDIR]= visc*(two*dudx - two3rd*delu);
-            tau[XDIR][YDIR]= visc*(dudy + dvdx);
-            tau[XDIR][ZDIR]= visc*(dudz + dwdx);
+        gradv[0]  = (phi(right,VELY_INDX) - phi(left,VELY_INDX))/dx[sweepdir];
 
-            tau[YDIR][XDIR]= visc*(dvdx + dudy);
-            tau[YDIR][YDIR]= visc*(two*dvdy - two3rd*delu);
-            tau[YDIR][ZDIR]= visc*(dvdz + dwdy);
+        gradv[1] = ( half*(phi(top_left,VELY_INDX) + phi(top_right,VELY_INDX)) 
+                    - half*(phi(bot_left,VELY_INDX) + phi(bot_right,VELY_INDX)) )/(two*dx[trans1dir]);
 
-            tau[ZDIR][XDIR]= visc*(dwdx + dudz);
-            tau[ZDIR][YDIR]= visc*(dwdy + dvdz);
-            tau[ZDIR][ZDIR]= visc*(two*dwdz - two3rd*delu);
+        gradv[2] = ( half*(phi(frt_left,VELY_INDX) + phi(frt_right,VELY_INDX)) 
+                    - half*(phi(bck_left,VELY_INDX) + phi(bck_right,VELY_INDX)) )/(two*dx[trans2dir]);
 
-            fx(i,j,k,RHOU_INDX) -= ( tau[XDIR][XDIR]*normal[XDIR] 
-                    + tau[YDIR][XDIR]*normal[YDIR] 
-                    + tau[ZDIR][XDIR]*normal[ZDIR]);
+        gradw[0]  = (phi(right,VELZ_INDX) - phi(left,VELZ_INDX))/dx[sweepdir];
 
-            fx(i,j,k,RHOV_INDX) -= ( tau[XDIR][YDIR]*normal[XDIR] 
-                    + tau[YDIR][YDIR]*normal[YDIR] 
-                    + tau[ZDIR][YDIR]*normal[ZDIR]);
+        gradw[1] = ( half*(phi(top_left,VELZ_INDX) + phi(top_right,VELZ_INDX)) 
+                    - half*(phi(bot_left,VELZ_INDX) + phi(bot_right,VELZ_INDX)) )/(two*dx[trans1dir]);
 
-            fx(i,j,k,RHOW_INDX) -= ( tau[XDIR][ZDIR]*normal[XDIR] 
-                    + tau[YDIR][ZDIR]*normal[YDIR] 
-                    + tau[ZDIR][ZDIR]*normal[ZDIR]);
+        gradw[2] = ( half*(phi(frt_left,VELZ_INDX) + phi(frt_right,VELZ_INDX)) 
+                    - half*(phi(bck_left,VELZ_INDX) + phi(bck_right,VELZ_INDX)) )/(two*dx[trans2dir]);
 
-            fx(i,j,k,RHOE_INDX) -= thcond*dTdx;
+        dudx=gradu[GET_XDIR(sweepdir)];
+        dudy=gradu[GET_YDIR(sweepdir)];
+        dudz=gradu[GET_ZDIR(sweepdir)];
 
-            //viscous dissipation term
-            //this term is the work done on the control volume by viscous forces - tau_{ji} n_j v_i
-            fx(i,j,k,RHOE_INDX) -= (tau[XDIR][XDIR]*normal[XDIR] + 
-                    tau[YDIR][XDIR]*normal[YDIR] +
-                    tau[ZDIR][XDIR]*normal[ZDIR] )*uface;
+        dvdx=gradv[GET_XDIR(sweepdir)];
+        dvdy=gradv[GET_YDIR(sweepdir)];
+        dvdz=gradv[GET_ZDIR(sweepdir)];
 
-            fx(i,j,k,RHOE_INDX) -= (tau[XDIR][YDIR]*normal[XDIR] + 
-                    tau[YDIR][YDIR]*normal[YDIR] +
-                    tau[ZDIR][YDIR]*normal[ZDIR] )*vface;
+        dwdx=gradw[GET_XDIR(sweepdir)];
+        dwdy=gradw[GET_YDIR(sweepdir)];
+        dwdz=gradw[GET_ZDIR(sweepdir)];
 
-            fx(i,j,k,RHOE_INDX) -= (tau[XDIR][ZDIR]*normal[XDIR] + 
-                    tau[YDIR][ZDIR]*normal[YDIR] +
-                    tau[ZDIR][ZDIR]*normal[ZDIR] )*wface;
-        }
+        dTdn = (phi(right,TEMP_INDX) - phi(left,TEMP_INDX))/dx[sweepdir];
 
-    }    
+        delu = dudx + dvdy + dwdz;
+
+        tau[XDIR][XDIR]= visc*(two*dudx - two3rd*delu);
+        tau[XDIR][YDIR]= visc*(dudy + dvdx);
+        tau[XDIR][ZDIR]= visc*(dudz + dwdx);
+
+        tau[YDIR][XDIR]= visc*(dvdx + dudy);
+        tau[YDIR][YDIR]= visc*(two*dvdy - two3rd*delu);
+        tau[YDIR][ZDIR]= visc*(dvdz + dwdy);
+
+        tau[ZDIR][XDIR]= visc*(dwdx + dudz);
+        tau[ZDIR][YDIR]= visc*(dwdy + dvdz);
+        tau[ZDIR][ZDIR]= visc*(two*dwdz - two3rd*delu);
+
+        fx(i,j,k,RHOU_INDX) -= ( tau[XDIR][XDIR]*normal[XDIR] 
+                                + tau[YDIR][XDIR]*normal[YDIR] 
+                                + tau[ZDIR][XDIR]*normal[ZDIR]);
+
+        fx(i,j,k,RHOV_INDX) -= ( tau[XDIR][YDIR]*normal[XDIR] 
+                                + tau[YDIR][YDIR]*normal[YDIR] 
+                                + tau[ZDIR][YDIR]*normal[ZDIR]);
+
+        fx(i,j,k,RHOW_INDX) -= ( tau[XDIR][ZDIR]*normal[XDIR] 
+                                + tau[YDIR][ZDIR]*normal[YDIR] 
+                                + tau[ZDIR][ZDIR]*normal[ZDIR]);
+
+        fx(i,j,k,RHOE_INDX) -= thcond*dTdn;
+
+
+        //this term is the work done on the control volume by viscous forces - tau_{ji} n_j v_i
+        fx(i,j,k,RHOE_INDX) -= (tau[XDIR][XDIR]*normal[XDIR] + 
+                                tau[YDIR][XDIR]*normal[YDIR] +
+                                tau[ZDIR][XDIR]*normal[ZDIR] )*uface;
+
+        fx(i,j,k,RHOE_INDX) -= (tau[XDIR][YDIR]*normal[XDIR] + 
+                                tau[YDIR][YDIR]*normal[YDIR] +
+                                tau[ZDIR][YDIR]*normal[ZDIR] )*vface;
+
+        fx(i,j,k,RHOE_INDX) -= (tau[XDIR][ZDIR]*normal[XDIR] + 
+                                tau[YDIR][ZDIR]*normal[YDIR] +
+                                tau[ZDIR][ZDIR]*normal[ZDIR] )*wface;
+    }
+
     //Species convection and diffusion
     //convection
     for(int sp=0;sp<NUM_SPECIES;sp++)
     {
-        Real phi_im2   = phi(i-2,j,k,FLO_NVARS+sp);
-        Real phi_im1   = phi(i-1,j,k,FLO_NVARS+sp);
-        Real phi_i     = phi(i,j,k,FLO_NVARS+sp);
-        Real phi_ip1   = phi(i+1,j,k,FLO_NVARS+sp);
+        Real phi_im2   = phi(left1,FLO_NVARS+sp);
+        Real phi_im1   = phi(left,FLO_NVARS+sp);
+        Real phi_i     = phi(right,FLO_NVARS+sp);
+        Real phi_ip1   = phi(right1,FLO_NVARS+sp);
         Real rL = (phi_im1-phi_im2)/(phi_i-phi_im1+SMALLVAL);
         Real rR = (phi_i-phi_im1)/(phi_ip1-phi_i+SMALLVAL);
         Real phiL = phi_im1 + minmod_flux_limiter(rL)*half*(phi_im1-phi_im2);
         Real phiR = phi_i   - minmod_flux_limiter(rR)*half*(phi_ip1-phi_i);
 
         fx(i,j,k,FLO_NVARS+sp) = mflo_species::advect_flags[sp]*
-            (half*(uface+fabs(uface))*phiL +
-             half*(uface-fabs(uface))*phiR);
+        (half*(uface+fabs(uface))*phiL +
+         half*(uface-fabs(uface))*phiR);
     }
 
-    //diffusion
+    //this term is del.(D rho grad(Y)) 
     for(int sp=0;sp<NUM_SPECIES;sp++)
     {
-        fx(i,j,k,FLO_NVARS+sp) -= specdiff(i,j,k,sp)*
-            (phi(i,j,k,FLO_NVARS+sp)-phi(i-1,j,k,FLO_NVARS+sp))/dx[XDIR];
-    }
-}
-
-AMREX_GPU_DEVICE
-    AMREX_FORCE_INLINE
-void compute_flux_y(int i, int j, int k,
-        Array4<Real> const& phi, //state variable
-        Array4<Real> const& fluid_transpcoeffs,
-        Array4<Real> const& specdiff,
-        Array4<Real> const& fy,
-        const GpuArray<Real, AMREX_SPACEDIM>& dx,bool nsflag)
-{
-    Real ul[NCVARS+NUM_SPECIES],ur[NCVARS+NUM_SPECIES];
-    Real pl[NCVARS],pr[NCVARS];
-    Real normal[AMREX_SPACEDIM];
-    Real dudx,dudy,dudz;
-    Real dvdx,dvdy,dvdz;
-    Real dwdx,dwdy,dwdz;
-    Real delu;
-    Real dTdy;
-    Real tau[AMREX_SPACEDIM][AMREX_SPACEDIM];
-    Real visc,thcond;
-
-    normal[XDIR] = zeroval;
-    normal[YDIR] = one;
-    normal[ZDIR] = zeroval;
-
-    Real fhalf[NCVARS+NUM_SPECIES]={zeroval};
-
-    visc   = half*(fluid_transpcoeffs(i,j-1,k,VISC_INDX)   +   fluid_transpcoeffs(i,j,k,VISC_INDX));
-    thcond = half*(fluid_transpcoeffs(i,j-1,k,THCOND_INDX) +   fluid_transpcoeffs(i,j,k,THCOND_INDX));
-
-    //face velocity
-    Real uface = half*(phi(i,j-1,k,VELX_INDX) + phi(i,j,k,VELX_INDX));
-    Real vface = half*(phi(i,j-1,k,VELY_INDX) + phi(i,j,k,VELY_INDX));
-    Real wface = half*(phi(i,j-1,k,VELZ_INDX) + phi(i,j,k,VELZ_INDX));
-
-#ifdef IMM_BOUNDARY
-    Real vfrac_L=phi(i,j-1,k,VFRAC_INDX);
-    Real vfrac_R=phi(i,j,k,VFRAC_INDX);
-#endif
-
-#ifdef IMM_BOUNDARY
-    //vfrac is zeroval on left or right, then face vel is zeroval
-    if(vfrac_L == zeroval or vfrac_R == zeroval)
-    {
-        uface=zeroval;
-        vface=zeroval;
-        wface=zeroval;
-    }
-#endif
-
-    if(nsflag)
-    {
-        for(int c=0;c<NCVARS;c++)
-        {
-            ul[c+RHO_IND]=phi(i,j-1,k,c+RHO_INDX);
-            ur[c+RHO_IND]=phi(i,  j,k,c+RHO_INDX);
-        }
-        for(int c=0;c<NUM_SPECIES;c++)
-        {
-            ul[c+NCVARS] = phi(i,j-1,k,c+FLO_NVARS);
-            ur[c+NCVARS] = phi(i,j  ,k,c+FLO_NVARS);
-        }
-
-#ifdef IMM_BOUNDARY
-        if(vfrac_L > zeroval and vfrac_R > zeroval)
-#endif
-        {
-#ifdef SEC_ORDER_FLUX
-
-#ifdef IMM_BOUNDARY
-            if(phi(i,j-2,k,VFRAC_INDX) > zeroval and phi(i,j+1,k,VFRAC_INDX) > zeroval)
-#endif
-            {
-                Real ulm1[NCVARS+NUM_SPECIES],urp1[NCVARS+NUM_SPECIES];
-                for(int c=0;c<NCVARS;c++)
-                {
-                    ulm1[c+RHO_IND] = phi(i,j-2,k,c+RHO_INDX);
-                    urp1[c+RHO_IND] = phi(i,j+1,k,c+RHO_INDX);
-                }
-                for(int c=0;c<NUM_SPECIES;c++)
-                {
-                    ulm1[c+NCVARS] = phi(i,j-2,k,c+FLO_NVARS);
-                    urp1[c+NCVARS] = phi(i,j+1,k,c+FLO_NVARS);
-                }
-                get_higherorder_states(ul,ur,ulm1,urp1);
-            }
-#endif
-        }
-#ifdef IMM_BOUNDARY
-        else if(vfrac_R == zeroval)
-        {
-            cons_to_prim(ul,pl);
-
-            pr[DENS_IND] =  pl[DENS_IND];
-            pr[VELX_IND] = -pl[VELX_IND];
-            pr[VELY_IND] = -pl[VELY_IND];
-            pr[VELZ_IND] = -pl[VELZ_IND];
-            pr[PRES_IND] =  pl[PRES_IND];
-
-            //zeroval gradient for species
-            //note: this is only to make sure
-            //rho,rhou,rhov,rhow,rhoe fluxes are correct
-            for(int c=0;c<NUM_SPECIES;c++)
-            {
-                ur[c+NCVARS] = ul[c+NCVARS];
-            }
-
-            prim_to_cons(ur,pr);
-        }
-        else
-        {
-            cons_to_prim(ur,pr);
-
-            pl[DENS_IND] =  pr[DENS_IND];
-            pl[VELX_IND] = -pr[VELX_IND];
-            pl[VELY_IND] = -pr[VELY_IND];
-            pl[VELZ_IND] = -pr[VELZ_IND];
-            pl[PRES_IND] =  pr[PRES_IND];
-
-            //zeroval gradient for species
-            //note: this is only to make sure
-            //rho,rhou,rhov,rhow,rhoe fluxes are correct
-            for(int c=0;c<NUM_SPECIES;c++)
-            {
-                ul[c+NCVARS] = ur[c+NCVARS];
-            }
-
-            prim_to_cons(ul,pl);
-        }
-#endif
-
-#ifdef IMM_BOUNDARY
-        //if both vfracs are 0 then fhalf should be 0
-        if(vfrac_L > zeroval or vfrac_R > zeroval)
-#endif
-        {
-            ausmp_up_flux(ul,ur,fhalf,normal);
-            //laxf_flux(ul,ur,fhalf,normal);
-        }
-
-        for(int c=0;c<NCVARS;c++)
-        {
-            fy(i,j,k,c+RHO_INDX) = fhalf[c+RHO_IND];
-        } 
-
-#ifdef IMM_BOUNDARY
-        if(vfrac_L > zeroval or vfrac_R > zeroval)
-#endif
-        {
-            viscous_stencil_y(i,j,k,phi,VELX_INDX,dx,dudx,dudy,dudz);
-            viscous_stencil_y(i,j,k,phi,VELY_INDX,dx,dvdx,dvdy,dvdz);
-            viscous_stencil_y(i,j,k,phi,VELZ_INDX,dx,dwdx,dwdy,dwdz);
-
-            dTdy = (phi(i,j,k,TEMP_INDX) - phi(i,j-1,k,TEMP_INDX))/dx[YDIR];
-
-            delu = dudx + dvdy + dwdz;
-
-            tau[XDIR][XDIR]= visc*(two*dudx - two3rd*delu);
-            tau[XDIR][YDIR]= visc*(dudy + dvdx);
-            tau[XDIR][ZDIR]= visc*(dudz + dwdx);
-
-            tau[YDIR][XDIR]= visc*(dvdx + dudy);
-            tau[YDIR][YDIR]= visc*(two*dvdy - two3rd*delu);
-            tau[YDIR][ZDIR]= visc*(dvdz + dwdy);
-
-            tau[ZDIR][XDIR]= visc*(dwdx + dudz);
-            tau[ZDIR][YDIR]= visc*(dwdy + dvdz);
-            tau[ZDIR][ZDIR]= visc*(two*dwdz - two3rd*delu);
-
-            fy(i,j,k,RHOU_INDX) -= ( tau[XDIR][XDIR]*normal[XDIR] 
-                    + tau[YDIR][XDIR]*normal[YDIR] 
-                    + tau[ZDIR][XDIR]*normal[ZDIR]);
-
-            fy(i,j,k,RHOV_INDX) -= ( tau[XDIR][YDIR]*normal[XDIR] 
-                    + tau[YDIR][YDIR]*normal[YDIR] 
-                    + tau[ZDIR][YDIR]*normal[ZDIR]);
-
-            fy(i,j,k,RHOW_INDX) -= ( tau[XDIR][ZDIR]*normal[XDIR] 
-                    + tau[YDIR][ZDIR]*normal[YDIR] 
-                    + tau[ZDIR][ZDIR]*normal[ZDIR]);
-
-            fy(i,j,k,RHOE_INDX) -= thcond*dTdy;
-
-            //viscous dissipation term
-
-            //this term is the work done on the control volume by viscous forces - tau_{ji} n_j v_i
-            fy(i,j,k,RHOE_INDX) -= (tau[XDIR][XDIR]*normal[XDIR] + 
-                    tau[YDIR][XDIR]*normal[YDIR] +
-                    tau[ZDIR][XDIR]*normal[ZDIR] )*uface;
-
-            fy(i,j,k,RHOE_INDX) -= (tau[XDIR][YDIR]*normal[XDIR] + 
-                    tau[YDIR][YDIR]*normal[YDIR] +
-                    tau[ZDIR][YDIR]*normal[ZDIR] )*vface;
-
-            fy(i,j,k,RHOE_INDX) -= (tau[XDIR][ZDIR]*normal[XDIR] + 
-                    tau[YDIR][ZDIR]*normal[YDIR] +
-                    tau[ZDIR][ZDIR]*normal[ZDIR] )*wface;
-        }
-    } 
-    //Species convection and diffusion
-    //convection
-    for(int sp=0;sp<NUM_SPECIES;sp++)
-    {
-        Real phi_im2   = phi(i,j-2,k,FLO_NVARS+sp);
-        Real phi_im1   = phi(i,j-1,k,FLO_NVARS+sp);
-        Real phi_i     = phi(i,j,k,FLO_NVARS+sp);
-        Real phi_ip1   = phi(i,j+1,k,FLO_NVARS+sp);
-        Real rL = (phi_im1-phi_im2)/(phi_i-phi_im1+SMALLVAL);
-        Real rR = (phi_i-phi_im1)/(phi_ip1-phi_i+SMALLVAL);
-        Real phiL = phi_im1 + minmod_flux_limiter(rL)*half*(phi_im1-phi_im2);
-        Real phiR = phi_i   - minmod_flux_limiter(rR)*half*(phi_ip1-phi_i);
-
-        fy(i,j,k,FLO_NVARS+sp) = mflo_species::advect_flags[sp] * 
-            (half*(vface+fabs(vface))*phiL +
-             half*(vface-fabs(vface))*phiR);
+        fx(i,j,k,FLO_NVARS+sp) -= spec_dcoeff[sp]*half*(ul[RHO_IND]+ur[RHO_IND])*
+        (ur[NCVARS+sp]/ur[RHO_IND]-ul[NCVARS+sp]/ul[RHO_IND])/dx[sweepdir];
     }
 
-    //diffusion
-    for(int sp=0;sp<NUM_SPECIES;sp++)
-    {
-        fy(i,j,k,FLO_NVARS+sp) -= specdiff(i,j,k,sp)*
-            (phi(i,j,k,FLO_NVARS+sp)-phi(i,j-1,k,FLO_NVARS+sp))/dx[YDIR];
-    }
-}
-
-AMREX_GPU_DEVICE
-    AMREX_FORCE_INLINE
-void compute_flux_z(int i, int j, int k,
-        Array4<Real> const& phi, //state variable
-        Array4<Real> const& fluid_transpcoeffs,
-        Array4<Real> const& specdiff,
-        Array4<Real> const& fz,
-        const GpuArray<Real, AMREX_SPACEDIM>& dx,bool nsflag)
-{
-    Real ul[NCVARS+NUM_SPECIES],ur[NCVARS+NUM_SPECIES];
-    Real pl[NCVARS],pr[NCVARS];
-    Real normal[AMREX_SPACEDIM];
-    Real dudx,dudy,dudz;
-    Real dvdx,dvdy,dvdz;
-    Real dwdx,dwdy,dwdz;
-    Real delu;
-    Real dTdz;
-    Real tau[AMREX_SPACEDIM][AMREX_SPACEDIM];
-    Real visc,thcond;
-
-    normal[XDIR] = zeroval;
-    normal[YDIR] = zeroval;
-    normal[ZDIR] = one;
-
-    Real fhalf[NCVARS+NUM_SPECIES]={zeroval};
-
-    visc   = half*(fluid_transpcoeffs(i,j,k-1,VISC_INDX)   + fluid_transpcoeffs(i,j,k,VISC_INDX));
-    thcond = half*(fluid_transpcoeffs(i,j,k-1,THCOND_INDX) + fluid_transpcoeffs(i,j,k,THCOND_INDX));
-
-    //face velocity
-    Real uface = half*(phi(i,j,k-1,VELX_INDX) + phi(i,j,k,VELX_INDX));
-    Real vface = half*(phi(i,j,k-1,VELY_INDX) + phi(i,j,k,VELY_INDX));
-    Real wface = half*(phi(i,j,k-1,VELZ_INDX) + phi(i,j,k,VELZ_INDX));
-
-#ifdef IMM_BOUNDARY
-    Real vfrac_L=phi(i,j,k-1,VFRAC_INDX);
-    Real vfrac_R=phi(i,j,k,VFRAC_INDX);
-#endif
-
-#ifdef IMM_BOUNDARY
-    //vfrac is zeroval on left or right, then face vel is zeroval
-    if(vfrac_L == zeroval or vfrac_R == zeroval)
-    {
-        uface=zeroval;
-        vface=zeroval;
-        wface=zeroval;
-    }
-#endif
-
-    if(nsflag)
-    {
-        for(int c=0;c<NCVARS;c++)
-        {
-            ul[c+RHO_IND]=phi(i,j,k-1,c+RHO_INDX);
-            ur[c+RHO_IND]=phi(i,j,  k,c+RHO_INDX);
-        }
-        for(int c=0;c<NUM_SPECIES;c++)
-        {
-            ul[c+NCVARS]=phi(i,j,k-1,c+FLO_NVARS);
-            ur[c+NCVARS]=phi(i,j,  k,c+FLO_NVARS);
-        }
-#ifdef IMM_BOUNDARY
-        if(vfrac_L > zeroval and vfrac_R > zeroval)
-#endif
-        {
-#ifdef SEC_ORDER_FLUX
-#ifdef IMM_BOUNDARY
-            if(phi(i,j,k-2,VFRAC_INDX) > zeroval and phi(i,j,k+1,VFRAC_INDX) > zeroval)
-#endif
-            {
-                Real ulm1[NCVARS+NUM_SPECIES],urp1[NCVARS+NUM_SPECIES];
-                for(int c=0;c<NCVARS;c++)
-                {
-                    ulm1[c+RHO_IND] = phi(i,j,k-2,c+RHO_INDX);
-                    urp1[c+RHO_IND] = phi(i,j,k+1,c+RHO_INDX);
-                }
-                for(int c=0;c<NUM_SPECIES;c++)
-                {
-                    ulm1[c+NCVARS] = phi(i,j,k-2,c+FLO_NVARS);
-                    urp1[c+NCVARS] = phi(i,j,k+1,c+FLO_NVARS);
-                }
-                get_higherorder_states(ul,ur,ulm1,urp1);
-            }
-#endif
-        }
-#ifdef IMM_BOUNDARY
-        else if(vfrac_R == zeroval)
-        {
-            cons_to_prim(ul,pl);
-
-            pr[DENS_IND] =  pl[DENS_IND];
-            pr[VELX_IND] = -pl[VELX_IND];
-            pr[VELY_IND] = -pl[VELY_IND];
-            pr[VELZ_IND] = -pl[VELZ_IND];
-            pr[PRES_IND] =  pl[PRES_IND];
-
-            //zeroval gradient for species
-            //note: this is only to make sure
-            //rho,rhou,rhov,rhow,rhoe fluxes are correct
-            for(int c=0;c<NUM_SPECIES;c++)
-            {
-                ur[c+NCVARS] = ul[c+NCVARS];
-            }
-
-            prim_to_cons(ur,pr);
-        }
-        else
-        {
-            cons_to_prim(ur,pr);
-
-            pl[DENS_IND] =  pr[DENS_IND];
-            pl[VELX_IND] = -pr[VELX_IND];
-            pl[VELY_IND] = -pr[VELY_IND];
-            pl[VELZ_IND] = -pr[VELZ_IND];
-            pl[PRES_IND] =  pr[PRES_IND];
-
-            //zeroval gradient for species
-            //note: this is only to make sure
-            //rho,rhou,rhov,rhow,rhoe fluxes are correct
-            for(int c=0;c<NUM_SPECIES;c++)
-            {
-                ul[c+NCVARS] = ur[c+NCVARS];
-            }
-
-            prim_to_cons(ul,pl);
-        }
-#endif
-
-#ifdef IMM_BOUNDARY
-        //if both vfracs are 0 then fhalf should be 0
-        if(vfrac_L > zeroval or vfrac_R > zeroval)
-#endif
-        {
-            ausmp_up_flux(ul,ur,fhalf,normal);
-            //laxf_flux(ul,ur,fhalf,normal);
-        }
-
-        for(int c=0;c<NCVARS;c++)
-        {
-            fz(i,j,k,c+RHO_INDX) = fhalf[c+RHO_IND];
-        } 
-
-#ifdef IMM_BOUNDARY
-        if(vfrac_L > zeroval or vfrac_R > zeroval)
-#endif
-        {
-            viscous_stencil_z(i,j,k,phi,VELX_INDX,dx,dudx,dudy,dudz);
-            viscous_stencil_z(i,j,k,phi,VELY_INDX,dx,dvdx,dvdy,dvdz);
-            viscous_stencil_z(i,j,k,phi,VELZ_INDX,dx,dwdx,dwdy,dwdz);
-
-            dTdz = (phi(i,j,k,TEMP_INDX) - phi(i,j,k-1,TEMP_INDX))/dx[ZDIR];
-
-            delu = dudx + dvdy + dwdz;
-
-            tau[XDIR][XDIR]= visc*(two*dudx - two3rd*delu);
-            tau[XDIR][YDIR]= visc*(dudy + dvdx);
-            tau[XDIR][ZDIR]= visc*(dudz + dwdx);
-
-            tau[YDIR][XDIR]= visc*(dvdx + dudy);
-            tau[YDIR][YDIR]= visc*(two*dvdy - two3rd*delu);
-            tau[YDIR][ZDIR]= visc*(dvdz + dwdy);
-
-            tau[ZDIR][XDIR]= visc*(dwdx + dudz);
-            tau[ZDIR][YDIR]= visc*(dwdy + dvdz);
-            tau[ZDIR][ZDIR]= visc*(two*dwdz - two3rd*delu);
-
-            fz(i,j,k,RHOU_INDX) -= ( tau[XDIR][XDIR]*normal[XDIR] 
-                    + tau[YDIR][XDIR]*normal[YDIR] 
-                    + tau[ZDIR][XDIR]*normal[ZDIR]);
-
-            fz(i,j,k,RHOV_INDX) -= ( tau[XDIR][YDIR]*normal[XDIR] 
-                    + tau[YDIR][YDIR]*normal[YDIR] 
-                    + tau[ZDIR][YDIR]*normal[ZDIR]);
-
-            fz(i,j,k,RHOW_INDX) -= ( tau[XDIR][ZDIR]*normal[XDIR] 
-                    + tau[YDIR][ZDIR]*normal[YDIR] 
-                    + tau[ZDIR][ZDIR]*normal[ZDIR]);
-
-            fz(i,j,k,RHOE_INDX) -= thcond*dTdz;
-
-            //viscous dissipation term
-
-            //this term is the work done on the control volume by viscous forces - tau_{ji} n_j v_i
-            fz(i,j,k,RHOE_INDX) -= (tau[XDIR][XDIR]*normal[XDIR] + 
-                    tau[YDIR][XDIR]*normal[YDIR] +
-                    tau[ZDIR][XDIR]*normal[ZDIR] )*uface;
-
-            fz(i,j,k,RHOE_INDX) -= (tau[XDIR][YDIR]*normal[XDIR] + 
-                    tau[YDIR][YDIR]*normal[YDIR] +
-                    tau[ZDIR][YDIR]*normal[ZDIR] )*vface;
-
-            fz(i,j,k,RHOE_INDX) -= (tau[XDIR][ZDIR]*normal[XDIR] + 
-                    tau[YDIR][ZDIR]*normal[YDIR] +
-                    tau[ZDIR][ZDIR]*normal[ZDIR] )*wface;
-        }
-    } 
-    //Species convection and diffusion
-    //convection
-    for(int sp=0;sp<NUM_SPECIES;sp++)
-    {
-        Real phi_im2   = phi(i,j,k-2,FLO_NVARS+sp);
-        Real phi_im1   = phi(i,j,k-1,FLO_NVARS+sp);
-        Real phi_i     = phi(i,j,k,FLO_NVARS+sp);
-        Real phi_ip1   = phi(i,j,k+1,FLO_NVARS+sp);
-        Real rL = (phi_im1-phi_im2)/(phi_i-phi_im1+SMALLVAL);
-        Real rR = (phi_i-phi_im1)/(phi_ip1-phi_i+SMALLVAL);
-        Real phiL = phi_im1 + minmod_flux_limiter(rL)*half*(phi_im1-phi_im2);
-        Real phiR = phi_i   - minmod_flux_limiter(rR)*half*(phi_ip1-phi_i);
-
-        fz(i,j,k,FLO_NVARS+sp) = mflo_species::advect_flags[sp]* 
-            (half*(wface+fabs(wface))*phiL +
-             half*(wface-fabs(wface))*phiR);
-    }
-
-    //diffusion
-    for(int sp=0;sp<NUM_SPECIES;sp++)
-    {
-        fz(i,j,k,FLO_NVARS+sp) -= specdiff(i,j,k,sp)*
-            (phi(i,j,k,FLO_NVARS+sp)-phi(i,j,k-1,FLO_NVARS+sp))/dx[ZDIR];
-    }
 }
 #endif

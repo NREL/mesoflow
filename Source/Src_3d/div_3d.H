@@ -29,12 +29,12 @@ void update_residual(
                        (flxz(i, j, k, n) - flxz(i, j, k + 1, n)) / dx[2] +
                        source(i, j, k, n);
 
-#ifdef IMM_BOUNDARY
-    //only mask fluid quantities
     if(n < FLO_NVARS)
     {
-        dsdt(i, j, k, n) *= phi(i, j, k, VFRAC_INDX);
+        if(phi(i,j,k,VFRAC_INDX) < one)
+        {    
+          dsdt(i, j, k, n)=zeroval;
+        }
     }
-#endif
 }
 #endif
