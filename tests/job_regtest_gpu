@@ -1,0 +1,13 @@
+#!/bin/bash
+#SBATCH --job-name=regtestgpu
+#SBATCH --partition=gpu
+#SBATCH --nodes=1
+#SBATCH --gres=gpu:2
+#SBATCH --ntasks-per-node=2
+#SBATCH --time=02:00:00
+#SBATCH --account=biocon
+#SBATCH --output=regout
+#SBATCH --error=regerr
+
+source ~/loadcuda.sh
+. ./script_reg_testing.sh 2 srun ~/ytenv.sh /projects/biocon/mesoflow/tests/mflo_results_gpu "USE_CUDA=TRUE" 
