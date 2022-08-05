@@ -41,6 +41,7 @@ void initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomda
                 Real rho0 = mflo_user_funcs::rho0;
 
                 
+                phi(i,j,k,VFRAC_INDX) = one;
                 phi(i,j,k,VELX_INDX) =  v0*sin(PI*x)*cos(PI*y)*cos(PI*z);
                 phi(i,j,k,VELY_INDX) = -v0*cos(PI*x)*sin(PI*y)*cos(PI*z);
                 phi(i,j,k,VELZ_INDX) =  zeroval;

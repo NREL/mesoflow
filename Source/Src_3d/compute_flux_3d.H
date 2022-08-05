@@ -172,10 +172,12 @@ void compute_flux(int i, int j, int k,int sweepdir,
                 urp1[c+RHO_IND]=ur[c+RHO_IND];
             }
         }
+
         if(hyperbolics_order == 2)
         {
             get_higherorder_states(ul,ur,ulm1,urp1);
         }
+        
         if(hyperbolics_order < 4)
         {
             ausmp_up_flux(ul,ur,fhalf,normal);

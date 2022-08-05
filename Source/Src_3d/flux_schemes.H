@@ -8,7 +8,7 @@
 //==========================================================================================
 AMREX_GPU_DEVICE
     AMREX_FORCE_INLINE
-void laxf_flux(Real ul[NCVARS+NUM_SPECIES],Real ur[NCVARS+NUM_SPECIES],Real fhalf[NCVARS],Real n[AMREX_SPACEDIM])
+void laxf_flux(Real ul[NCVARS+NUM_SPECIES],Real ur[NCVARS+NUM_SPECIES],Real fhalf[NCVARS+NUM_SPECIES],Real n[AMREX_SPACEDIM])
 {
     Real fl[NCVARS],fr[NCVARS];
     Real presL,presR;
@@ -144,7 +144,7 @@ Real split_pres(Real M,Real alpha,Real plus_or_minus)
 AMREX_GPU_DEVICE
     AMREX_FORCE_INLINE
 void ausmp_up_flux(Real ul[NCVARS+NUM_SPECIES],Real ur[NCVARS+NUM_SPECIES],
-        Real fhalf[NCVARS],Real n[AMREX_SPACEDIM],Real Minf=threetenth)
+        Real fhalf[NCVARS+NUM_SPECIES],Real n[AMREX_SPACEDIM],Real Minf=threetenth)
 {
     Real fluxL[NCVARS],fluxR[NCVARS];
     Real pl[NCVARS],pr[NCVARS];
