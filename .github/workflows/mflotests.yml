@@ -19,7 +19,7 @@ jobs:
         build-essential g++ gfortran libopenmpi-dev openmpi-bin
         git clone https://github.com/AMReX-Codes/amrex
     - name: Build Regression
-      working-directory: ./tests
+      working-directory: ./tests/Cartesian
       run: |
         cd Channel
         make -j 2 COMP=gnu DEBUG=TRUE
@@ -36,30 +36,30 @@ jobs:
         cd TaylorGreen 
         make -j 2 COMP=gnu DEBUG=TRUE
     - name: Run Regression
-      working-directory: ./tests
+      working-directory: ./tests/Cartesian
       run: |
           cd Channel
-          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_x
-          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_y
-          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_z
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_x max_step=20
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_y max_step=20
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_z max_step=20
           cd ..
           cd ShockTube_N2
-          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_x
-          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_y
-          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_z
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_x max_step=20
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_y max_step=20
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_z max_step=20
           cd ..
           cd ShockTube_N2He
-          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_x
-          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_y
-          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_z
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_x max_step=20
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_y max_step=20
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_z max_step=20
           cd ..
           cd SpeciesEqTests 
-          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_x
-          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_y
-          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_z
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_x max_step=20
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_y max_step=20
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_z max_step=20
           cd ..
           cd TaylorGreen 
-          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs max_step=20
   gputest:
     runs-on: ubuntu-latest
     steps:

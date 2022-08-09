@@ -17,7 +17,7 @@ RESULTS_DIR=${4:-~/mflo_results}
 MAKEFILE_OPTIONS=${5:-}
 rm -rf ${RESULTS_DIR}
 
-declare -a allcases=('Channel' 'ShockTube_N2' 'ShockTube_N2He' 'SpeciesEqTests')
+declare -a allcases=('Cartesian/Channel' 'Cartesian/ShockTube_N2' 'Cartesian/ShockTube_N2He' 'Cartesian/SpeciesEqTests')
 
 #clean directories
 for case in "${allcases[@]}";

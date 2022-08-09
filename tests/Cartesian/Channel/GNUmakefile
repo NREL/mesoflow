@@ -12,9 +12,7 @@ USE_MPI    = TRUE
 USE_OMP    = FALSE 
 USE_CUDA   = FALSE
 
-#USE_SEC_ORDER_FLUX = TRUE
-
 Bpack   := ./Make.package 
 Blocs   := . 
 
-include ../Make.mflo
+include ../../Make.mflo
