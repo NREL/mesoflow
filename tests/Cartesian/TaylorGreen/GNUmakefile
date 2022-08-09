@@ -17,4 +17,4 @@ USE_SEC_ORDER_FLUX = TRUE
 Bpack   := ./Make.package 
 Blocs   := . 
 
-include ../Make.mflo
+include ../../Make.mflo
