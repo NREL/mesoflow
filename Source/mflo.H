@@ -110,6 +110,8 @@ public:
     void store_inertgas_conc(int lev);
     void update_vars_after_chemsolve(int lev);
     void compute_residual_norms();
+    void update_cutcell_data(int lev, const int num_grow,
+    MultiFab& Sborder,Real time,Real dt);
 
 private:
     ////////////////
@@ -121,8 +123,6 @@ private:
     // set covered coarse cells to be the average of overlying fine cells
     void AverageDown();
 
-    void update_cutcell_data(int lev, const int num_grow,
-    MultiFab& Sborder,Real time,Real dt);
 
     // more flexible version of AverageDown() that lets you average down across
     // multiple levels
