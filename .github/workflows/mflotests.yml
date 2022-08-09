@@ -78,6 +78,7 @@ jobs:
           g++ gfortran libopenmpi-dev openmpi-bin cuda-command-line-tools-11-1 \
           cuda-compiler-11-1 cuda-minimal-build-11-1 \
           cuda-nvml-dev-11-1 cuda-nvtx-11-1 libcurand-dev-11-1 cuda-cupti-dev-11-1
+          git clone https://github.com/AMReX-Codes/amrex
     - name: Build Regression
       working-directory: ./tests
       run: |
