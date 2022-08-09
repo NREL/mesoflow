@@ -131,35 +131,17 @@ void mflo::EvolveAMR(Real final_time, bool only_flow)
 
 void mflo::compute_residual_norms()
 {
-    MultiFab& S_new = phi_new[0];
-    MultiFab& S_old = phi_old[0];
-    MultiFab solndiff(S_new.boxArray(), S_new.DistributionMap(), S_new.nComp(), 0);
-
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    {
-        for (MFIter mfi(S_new, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
-        {
-            const Box& bx = mfi.tilebox();
-            Array4<Real> snew_arr = S_new.array(mfi);
-            Array4<Real> sold_arr = S_old.array(mfi);
-            Array4<Real> solndiff_arr = solndiff.array(mfi);
-            const int ncomp = S_new.nComp();
-
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
-            {
-                for (int c = 0; c < ncomp; c++) 
-                {
-                    solndiff_arr(i,j,k,c) = (snew_arr(i,j,k,c)-sold_arr(i,j,k,c));
-                }
-            });
-        }
-    }
+    int lev=0;
+    MultiFab& S_new = phi_new[lev]; 
+    MultiFab& S_old = phi_old[lev]; 
+    MultiFab difference(grids[lev], dmap[lev], S_new.nComp(), 0);
+    MultiFab::LinComb(
+        difference, 1.0/dt[lev], S_new, 0, 
+        -1.0/dt[lev], S_old, 0, 0, S_new.nComp(), 0);
     
     for(int c=0;c<residual_norms.size();c++)
     {
-        residual_norms[c]=solndiff.norm2(c);
+        residual_norms[c]=difference.norm2(c);
     }
 }
 
@@ -409,6 +391,7 @@ void mflo::Advance_coupled(int lev, Real time, Real dt_lev, int iteration, int n
     // time is current time which is t_old
     FillPatch(lev, time, Sborder, 0, Sborder.nComp());
     // compute dsdt for 1/2 timestep
+    update_cutcell_data(lev,num_grow,Sborder,time+0.5*dt_lev,dt_lev);
     compute_dsdt_flow(lev, num_grow, Sborder, dsdt_flow, time, half * dt_lev, false);
     if(!only_flow)
     {
@@ -426,6 +409,7 @@ void mflo::Advance_coupled(int lev, Real time, Real dt_lev, int iteration, int n
     // time+dt_lev lets me pick S_new for sborder
     FillPatch(lev, time + dt_lev, Sborder, 0, Sborder.nComp());
     // dsdt for full time-step
+    update_cutcell_data(lev,num_grow,Sborder,time+0.5*dt_lev,dt_lev);
     compute_dsdt_flow(lev, num_grow, Sborder, dsdt_flow, time + half * dt_lev, dt_lev, true);
     if(!only_flow)
     {
@@ -501,6 +485,28 @@ void mflo::compute_dsdt_chemistry(
           
             dsdt[mfi].plus<RunOn::Device>(source_fab);
         }
+    }
+}
+
+void mflo::update_cutcell_data(
+    int lev,
+    const int num_grow,
+    MultiFab& Sborder,
+    Real time,
+    Real dt)
+{
+    int ncomp = Sborder.nComp();
+    auto prob_lo = geom[lev].ProbLoArray();
+    const auto dx = geom[lev].CellSizeArray();
+    
+    for (MFIter mfi(Sborder, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
+    {
+        const Box& bx = mfi.tilebox();
+        Array4<Real> sborder_arr = Sborder.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+            update_cutcells(i,j,k,sborder_arr,dx,prob_lo,time);
+        });
     }
 }
 
