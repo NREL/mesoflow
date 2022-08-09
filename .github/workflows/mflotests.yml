@@ -39,27 +39,27 @@ jobs:
       working-directory: ./tests
       run: |
           cd Channel
-          mpirun -n 2 ./mesoflow3d.gnu.MPI.DEBUG.ex inputs_x
-          mpirun -n 2 ./mesoflow3d.gnu.MPI.DEBUG.ex inputs_y
-          mpirun -n 2 ./mesoflow3d.gnu.MPI.DEBUG.ex inputs_z
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_x
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_y
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_z
           cd ..
           cd ShockTube_N2
-          mpirun -n 2 ./mesoflow3d.gnu.MPI.DEBUG.ex inputs_x
-          mpirun -n 2 ./mesoflow3d.gnu.MPI.DEBUG.ex inputs_y
-          mpirun -n 2 ./mesoflow3d.gnu.MPI.DEBUG.ex inputs_z
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_x
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_y
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_z
           cd ..
           cd ShockTube_N2He
-          mpirun -n 2 ./mesoflow3d.gnu.MPI.DEBUG.ex inputs_x
-          mpirun -n 2 ./mesoflow3d.gnu.MPI.DEBUG.ex inputs_y
-          mpirun -n 2 ./mesoflow3d.gnu.MPI.DEBUG.ex inputs_z
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_x
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_y
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_z
           cd ..
           cd SpeciesEqTests 
-          mpirun -n 2 ./mesoflow3d.gnu.MPI.DEBUG.ex inputs_x
-          mpirun -n 2 ./mesoflow3d.gnu.MPI.DEBUG.ex inputs_y
-          mpirun -n 2 ./mesoflow3d.gnu.MPI.DEBUG.ex inputs_z
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_x
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_y
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs_z
           cd ..
           cd TaylorGreen 
-          mpirun -n 2 ./mesoflow3d.gnu.MPI.DEBUG.ex inputs
+          mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs
   gputest:
     runs-on: ubuntu-latest
     steps:
