@@ -80,7 +80,7 @@ jobs:
           cuda-nvml-dev-11-1 cuda-nvtx-11-1 libcurand-dev-11-1 cuda-cupti-dev-11-1
           git clone https://github.com/AMReX-Codes/amrex
     - name: Build Regression
-      working-directory: ./tests
+      working-directory: ./tests/Cartesian
       run: |
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda-11.1/bin:${PATH}
         export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda-11.1/lib:${LD_LIBRARY_PATH}
