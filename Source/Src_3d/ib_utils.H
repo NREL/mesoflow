@@ -199,21 +199,96 @@ do_interpolation_hom_neumann(int i,int j,int k,int ngrow,
 }
 
 
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE amrex::Real 
+do_interpolation_hom_neumann(int ngrow,
+                             Real xp[3],amrex::Real* volfrac,
+                             amrex::Real* celldata,
+                             const GpuArray<Real, AMREX_SPACEDIM>& dx)
+{
+    Real dxmin=std::min(dx[XDIR],std::min(dx[YDIR],dx[ZDIR]));
+    Real dx_nd[3]={dx[0]/dxmin, dx[1]/dxmin, dx[2]/dxmin};
+    Real xp_nd[3]={xp[0]/dxmin, xp[1]/dxmin, xp[2]/dxmin};
+
+    //IDW weighting for now
+    Real sum=0.0;
+    Real sumwts=0.0;
+
+    int size_n=2*ngrow+1;
+    int size_m=2*ngrow+1;
+    int size_l=2*ngrow+1;
+
+    for(int n=-ngrow;n<=ngrow;n++)
+    {
+        for(int m=-ngrow;m<=ngrow;m++)
+        {
+            for(int l=-ngrow;l<=ngrow;l++)
+            {
+                int ind=(n+ngrow)*size_m*size_l+(m+ngrow)*size_l+(l+ngrow);
+                
+                //this function is mainly used for the background gas 
+                //concentration computation, so we will skip the cutcell
+                //as its density is what is found out    
+                if(l==0 && m==0 && n==0)
+                {  
+                        //miss the center cell
+                        //this is our output point
+                        continue;
+                }
+
+                if(volfrac[ind] == 1.0)
+                {
+                    Real dist2 = std::pow((l*dx_nd[0]-xp_nd[0]),2.0)
+                    + std::pow((m*dx_nd[1]-xp_nd[1]),2.0)
+                    + std::pow((n*dx_nd[2]-xp_nd[2]),2.0);
+
+                    sum+=celldata[ind]/dist2;
+                    sumwts+=1.0/dist2;
+                }
+            }
+        }
+    }
+
+    Real cellval;
+    //this can happen if the 
+    //mesh is under-resolved
+    if(sumwts>0.0)
+    {
+        cellval=sum/sumwts;
+    }
+    else
+    {
+        int n=0;
+        int m=0;
+        int l=0;
+        int ind=(n+ngrow)*size_m*size_l+(m+ngrow)*size_l+(l+ngrow);
+        cellval=celldata[ind];
+    }
+
+
+    return(cellval);
+}
+
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE void 
 update_cutcells(int i, int j, int k,
                 Array4<Real> const& phi, //state variable
                 const GpuArray<Real, AMREX_SPACEDIM>& dx,
                 const GpuArray<Real, AMREX_SPACEDIM>& plo,
-                Real time)
+                Real time, int spec_in_solid, int use_bg_gas)
 {
 
     Real lsgrad[3]={0.0};
     Real center[3]={0.0};
     Real tol=1e-5;
-    Real primvars[NCVARS];
-    Real consvars[NCVARS+NUM_SPECIES];
+    Real primvars[NCVARS]={0.0};
+    Real consvars[NCVARS+NUM_SPECIES]={0.0};
     Real dxmin=std::min(dx[XDIR],std::min(dx[YDIR],dx[ZDIR]));
     Real closest_dist=dxmin*tol;
+    const int STENCILGROW=2;
+    const int STENCILSIZE=(2*STENCILGROW+1);
+
+    Real vfrac[STENCILSIZE*STENCILSIZE*STENCILSIZE]={0.0};
+    Real celldata[STENCILSIZE*STENCILSIZE*STENCILSIZE]={0.0};
 
     if(phi(i,j,k,VFRAC_INDX)>zeroval && phi(i,j,k,VFRAC_INDX)<one)
     {
@@ -242,23 +317,67 @@ update_cutcells(int i, int j, int k,
         //minus sign to move back along the normal
         Real xp[3]={-dist*lsetnormal[0],-dist*lsetnormal[1],-dist*lsetnormal[2]};
 
-        phi(i,j,k,VELX_INDX)=do_interpolation_dirichlet(i,j,k,2,dist,closest_dist,0.0,phi,VELX_INDX,dx);
-        phi(i,j,k,VELY_INDX)=do_interpolation_dirichlet(i,j,k,2,dist,closest_dist,0.0,phi,VELY_INDX,dx);
-        phi(i,j,k,VELZ_INDX)=do_interpolation_dirichlet(i,j,k,2,dist,closest_dist,0.0,phi,VELZ_INDX,dx);
+        phi(i,j,k,VELX_INDX)=do_interpolation_dirichlet(i,j,k,STENCILGROW,dist,closest_dist,0.0,phi,VELX_INDX,dx);
+        phi(i,j,k,VELY_INDX)=do_interpolation_dirichlet(i,j,k,STENCILGROW,dist,closest_dist,0.0,phi,VELY_INDX,dx);
+        phi(i,j,k,VELZ_INDX)=do_interpolation_dirichlet(i,j,k,STENCILGROW,dist,closest_dist,0.0,phi,VELZ_INDX,dx);
 
-        phi(i,j,k,PRES_INDX)=do_interpolation_hom_neumann(i,j,k,2,xp,phi,PRES_INDX,dx);
-        phi(i,j,k,DENS_INDX)=do_interpolation_hom_neumann(i,j,k,2,xp,phi,DENS_INDX,dx);
-
+        phi(i,j,k,PRES_INDX)=do_interpolation_hom_neumann(i,j,k,STENCILGROW,xp,phi,PRES_INDX,dx);
+        
         //adiabatic wall for now
-        phi(i,j,k,TEMP_INDX)=do_interpolation_hom_neumann(i,j,k,2,xp,phi,TEMP_INDX,dx);
+        phi(i,j,k,TEMP_INDX)=do_interpolation_hom_neumann(i,j,k,STENCILGROW,xp,phi,TEMP_INDX,dx);
+
+        if(!spec_in_solid)
+        {
+            phi(i,j,k,DENS_INDX)=do_interpolation_hom_neumann(i,j,k,STENCILGROW,xp,phi,DENS_INDX,dx);
+            //for species (zero gradient)
+            for(int sp=0;sp<NUM_SPECIES;sp++)
+            {
+                phi(i,j,k,FLO_NVARS+sp)=do_interpolation_hom_neumann(i,j,k,STENCILGROW,xp,phi,FLO_NVARS+sp,dx);
+                consvars[NCVARS+sp]=phi(i,j,k,FLO_NVARS+sp);
+            }
+        }
+        else
+        {
+            for(int sp=0;sp<NUM_SPECIES;sp++)
+            {
+                phi(i,j,k,FLO_NVARS+sp)=do_interpolation_hom_neumann(i,j,k,STENCILGROW,xp,phi,FLO_NVARS+sp,dx);
+                consvars[NCVARS+sp]=phi(i,j,k,FLO_NVARS+sp);
+            }
+            if(!use_bg_gas)
+            {
+                phi(i,j,k,DENS_INDX)=mflo_thermo::get_r_from_c(consvars+NCVARS); 
+            }
+            else
+            {
+                for(int n=-STENCILGROW;n<=STENCILGROW;n++)
+                {
+                    for(int m=-STENCILGROW;m<=STENCILGROW;m++)
+                    {
+                        for(int l=-STENCILGROW;l<=STENCILGROW;l++)
+                        {
+                            int ind=(n+STENCILGROW)*STENCILSIZE*STENCILSIZE
+                            +(m+STENCILGROW)*STENCILSIZE+(l+STENCILGROW);
+
+                            Real spec[NUM_SPECIES];
+
+                            vfrac[ind]=phi(i+l,j+m,k+n,VFRAC_INDX);
+
+                            //includes the cut-cell under consideration
+                            //but the cut cell is not used for interpolation
+                            for(int sp=0;sp<NUM_SPECIES;sp++)
+                            {
+                                spec[sp]=phi(i,j,k,FLO_NVARS+sp);
+                            }
+                            celldata[ind]=mflo_thermo::get_bgasconc_from_rc(phi(i+l,j+m,k+n,DENS_INDX),spec);
+                        }
+                    }
+                }
+                Real bgconc=do_interpolation_hom_neumann(STENCILGROW,xp,vfrac,celldata,dx);
+                phi(i,j,k,DENS_INDX)=mflo_thermo::get_r_from_c(consvars+NCVARS,bgconc);
+            } 
+        }
         //amrex::Print()<<"vars:"<<phi(i,j,k,VELX_INDX)<<"\t"<<phi(i,j,k,VELY_INDX)<<"\t"<<phi(i,j,k,VELZ_INDX)<<
         //"\t"<<phi(i,j,k,PRES_INDX)<<"\t"<<phi(i,j,k,DENS_INDX)<<"\n";
-        //for species (zero gradient)
-        //for(int sp=0;sp<NUM_SPECIES;sp++)
-        //{
-        //  phi(i,j,k,FLO_NVARS+sp)=do_interpolation_hom_neumann(i,j,k,2,xp,phi,FLO_NVARS+sp,dx);
-        //  consvars[NCVARS+sp]=phi(i,j,k,FLO_NVARS+sp);
-        //}
 
         primvars[DENS_IND] = phi(i,j,k,DENS_INDX);
         primvars[VELX_IND] = phi(i,j,k,VELX_INDX);
@@ -266,6 +385,7 @@ update_cutcells(int i, int j, int k,
         primvars[VELZ_IND] = phi(i,j,k,VELZ_INDX);
         primvars[PRES_IND] = phi(i,j,k,PRES_INDX);
 
+        //species conc need to be set before this call in consvars
         prim_to_cons(consvars,primvars);
 
         for(int c=0;c<NCVARS;c++)
@@ -274,8 +394,5 @@ update_cutcells(int i, int j, int k,
         }
 
     }
-
-
 }
-
 #endif

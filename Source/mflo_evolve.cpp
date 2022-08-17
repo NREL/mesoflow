@@ -498,6 +498,8 @@ void mflo::update_cutcell_data(
     int ncomp = Sborder.nComp();
     auto prob_lo = geom[lev].ProbLoArray();
     const auto dx = geom[lev].CellSizeArray();
+    int using_inert_gas=using_bg_inertgas;
+    int spec_in_solid=species_in_solid;
     
     for (MFIter mfi(Sborder, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
     {
@@ -505,7 +507,8 @@ void mflo::update_cutcell_data(
         Array4<Real> sborder_arr = Sborder.array(mfi);
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-            update_cutcells(i,j,k,sborder_arr,dx,prob_lo,time);
+            update_cutcells(i,j,k,sborder_arr,dx,prob_lo,time,
+                            spec_in_solid,using_inert_gas);
         });
     }
 }
@@ -528,6 +531,7 @@ void mflo::compute_dsdt_flow(
     int ncomp = Sborder.nComp();
     int hyperbolics_order = order_hyp;
     Real hyperbolics_dissfactor = dissfactor;
+    int spec_in_solid=species_in_solid;
     dsdt.setVal(zeroval);
 
     // Build temporary multiFabs to work on.
@@ -591,7 +595,7 @@ void mflo::compute_dsdt_flow(
                     compute_flux(
                     i, j, k, XDIR, sborder_arr, fluid_transport_arr, 
                     specdiff_arr, flux_arr[0], 
-                    dx, hyperbolics_order,hyperbolics_dissfactor,nsflag);
+                    dx, hyperbolics_order,hyperbolics_dissfactor,nsflag,spec_in_solid);
                 });
 
             amrex::ParallelFor(
@@ -600,7 +604,7 @@ void mflo::compute_dsdt_flow(
                     compute_flux(
                     i, j, k, YDIR, sborder_arr, fluid_transport_arr, 
                     specdiff_arr, flux_arr[1], 
-                    dx, hyperbolics_order,hyperbolics_dissfactor,nsflag);
+                    dx, hyperbolics_order,hyperbolics_dissfactor,nsflag,spec_in_solid);
                 });
 
             amrex::ParallelFor(
@@ -609,7 +613,7 @@ void mflo::compute_dsdt_flow(
                     compute_flux(
                     i, j, k, ZDIR, sborder_arr, fluid_transport_arr, 
                     specdiff_arr, flux_arr[2], 
-                    dx, hyperbolics_order,hyperbolics_dissfactor,nsflag);
+                    dx, hyperbolics_order,hyperbolics_dissfactor,nsflag,spec_in_solid);
                 });
 
             // update residual
@@ -618,7 +622,7 @@ void mflo::compute_dsdt_flow(
                     update_residual(
                             i, j, k, n, dsdt_arr, source_arr, sborder_arr,
                             AMREX_D_DECL(flux_arr[0], flux_arr[1], flux_arr[2]),
-                            dx);
+                            dx,spec_in_solid);
                     });
         }
     }

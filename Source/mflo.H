@@ -227,6 +227,7 @@ private:
     int wallbc_id = 6;
     int order_hyp=2;
     Real dissfactor=0.5;
+    int species_in_solid=1;
 
     // hyperbolic refluxing as part of multilevel synchronization
     int do_reflux = 1;
