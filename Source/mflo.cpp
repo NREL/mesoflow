@@ -290,6 +290,7 @@ void mflo::ReadParameters()
         pp.query("using_bg_inertgas",using_bg_inertgas);
         pp.query("order_hyp",order_hyp);
         pp.query("dissfactor",dissfactor);
+        pp.query("species_in_solid",species_in_solid);
     }
 }
 
