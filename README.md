@@ -35,4 +35,12 @@ see Crowley et al.,Frontiers in Energy Research 10 (https://www.frontiersin.org/
 * For serial builds do $./mesoflow3d.gnu.ex inputs
 * For GPU execution make sure the number of ranks match the number of GPUs on the machine. 
   For example, if you have 2 GPUs on a node, do $mpirun -n 2 mesoflow3d.gnu.MPI.CUDA.ex inputs
+  
+  
+# Visualization instructions
+  
+* The outputs for a case are in the form of AMReX plotfiles
+* These plot files can be open usine AMReX grid reader in ParaView (see https://amrex-codes.github.io/amrex/docs_html/Visualization.html#paraview)
+* Alternatively yt or visit can also be used. see https://amrex-codes.github.io/amrex/docs_html/Visualization_Chapter.html
+* The code also outputs a residual norm at every timestep. This is the volume integral of dU/dt where U is a state variable. This file can be tracked/plotted to see if the solution is approaching steady-state.
 
