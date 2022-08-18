@@ -340,7 +340,6 @@ update_cutcells(int i, int j, int k,
         {
             for(int sp=0;sp<NUM_SPECIES;sp++)
             {
-                phi(i,j,k,FLO_NVARS+sp)=do_interpolation_hom_neumann(i,j,k,STENCILGROW,xp,phi,FLO_NVARS+sp,dx);
                 consvars[NCVARS+sp]=phi(i,j,k,FLO_NVARS+sp);
             }
             if(!use_bg_gas)
