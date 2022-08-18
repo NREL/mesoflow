@@ -1,5 +1,3 @@
-AMREX_HOME ?= ../../../../..
-
 PRECISION  = DOUBLE
 PROFILE    = FALSE
 
@@ -13,10 +11,6 @@ COMP	   = gnu
 USE_MPI    = TRUE
 USE_OMP    = FALSE 
 USE_CUDA   = FALSE
-
-USE_IMM_BOUNDARY=TRUE
-
-USE_SEC_ORDER_FLUX = TRUE
 
 Bpack   := ./Make.package 
 Blocs   := . 
