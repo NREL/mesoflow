@@ -22,7 +22,17 @@ see Crowley et al.,Frontiers in Energy Research 10 (https://www.frontiersin.org/
 
 # Build instructions
 
+* gcc and an MPI library (openMPI/MPICH) for CPU builds. cuda-11.0 is also required for GPU builds
 * This solver depends on the AMReX library - clone from https://github.com/AMReX-Codes/amrex
 * Set AMREX_HOME to the path of amrex (e.g. $export AMREX_HOME=/path/to/amrex
 * go to any of the test cases in tests or model folder (e.g. cd models/blockCatalyst1d)
 * build executable using the GNUMakefile - do $make for CPU build or do $make USE_CUDA=TRUE for GPU build
+
+# Run instructions
+
+* By default MPI is enabled in all builds, you can turn it off by doing $make USE_MPI=FALSE
+* For parallel execution do $mpirun -n <procs> mesoflow3d.gnu.MPI.ex inputs
+* For serial builds do $./mesoflow3d.gnu.ex inputs
+* For GPU execution make sure the number of ranks match the number of GPUs on the machine. 
+  For example, if you have 2 GPUs on a node, do $mpirun -n 2 mesoflow3d.gnu.MPI.CUDA.ex inputs
+
