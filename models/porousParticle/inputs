@@ -1,0 +1,59 @@
+max_step  = 50000
+stop_time = 1000
+
+# PROBLEM SIZE & GEOMETRY
+geometry.is_periodic =  0  0  0
+geometry.coord_sys   =  0       # 0 => cart
+geometry.prob_lo     =  1.0e-6      1.0e-6   1.0e-6
+geometry.prob_hi     =  680e-6    878e-6    320e-6
+amr.n_cell           =   768  768 768
+
+# VERBOSITY
+amr.v              = 1       # verbosity in Amr
+
+# REFINEMENT
+amr.max_level       = 0       # maximum level number allowed
+amr.blocking_factor = 4      # block factor in grid generation
+amr.max_grid_size   = 64
+
+amr.regrid_int      = 10       # how often to regrid
+
+# TIME STEP CONTROL
+mflo.cfl            = 0.1     # cfl number for hyperbolic system
+                             # In this test problem, the velocity is
+			     # time-dependent.  We could use 0.9 in
+			     # the 3D test, but need to use 0.7 in 2D
+			     # to satisfy CFL condition.
+
+mflo.do_reflux = 1
+
+#periodic 0
+#extdir 3
+#foextrap 2 
+#wall 6
+
+mflo.lo_bc = 6 3 6
+mflo.hi_bc = 6 3 6
+
+# Tagging
+mflo.tagged_vars = volfrac velx vely
+mflo.volfrac_refine = 1e20
+mflo.volfrac_refinegrad = 0.1
+mflo.velx_refine = 1e20
+mflo.velx_refinegrad = 0.02
+mflo.vely_refine = 0.05
+mflo.vely_refinegrad = 1e20
+
+# PLOTFILES
+amr.plot_file  = plt    # root name of plot file
+amr.plot_int   = 1000     # number of timesteps between plot files
+
+# CHECKPOINT
+amr.chk_file = chk      # root name of checkpoint file
+amr.chk_int  = -1       # number of timesteps between checkpoint files
+
+user.pres_left=1.01e5
+user.pres_right=1e5
+user.dens_left=1.17305
+
+mflo.species_in_solid=0
