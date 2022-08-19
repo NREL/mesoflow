@@ -31,7 +31,7 @@ see Crowley et al.,Frontiers in Energy Research 10 (https://www.frontiersin.org/
 # Run instructions
 
 * By default MPI is enabled in all builds, you can turn it off by doing $make USE_MPI=FALSE
-* For parallel execution do $mpirun -n <procs> mesoflow3d.gnu.MPI.ex inputs
+* For parallel execution do $mpirun -n nprocs mesoflow3d.gnu.MPI.ex inputs
 * For serial builds do $./mesoflow3d.gnu.ex inputs
 * For GPU execution make sure the number of ranks match the number of GPUs on the machine. 
   For example, if you have 2 GPUs on a node, do $mpirun -n 2 mesoflow3d.gnu.MPI.CUDA.ex inputs
