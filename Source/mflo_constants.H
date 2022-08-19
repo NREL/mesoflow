@@ -23,4 +23,5 @@
 #define P_NTP 101325.0 //pressure at normal pressure and temperature
 #define T_NTP 293.15  //temperature at normal pressure and temperature
 #define TINYVAL 1e-20
+#define TINYVAL2 1e-40
 #endif

@@ -33,12 +33,18 @@ void update_residual(
 
     int nvars_to_nullify=(spec_in_solid==1)?FLO_NVARS:FLO_NVARS+NUM_SPECIES;
 
+
     if(n < nvars_to_nullify)
     {
         if(phi(i,j,k,VFRAC_INDX) < one)
         {    
           dsdt(i, j, k, n)=zeroval;
         }
+    }
+    
+    if(dsdt(i,j,k,n)!=dsdt(i,j,k,n))
+    {
+        amrex::Abort("NaN detected in dsdt\n");
     }
 }
 #endif

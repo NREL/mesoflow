@@ -135,8 +135,8 @@ do_interpolation_dirichlet(int i,int j,int k,int ngrow,
                         + std::pow(m*dx_nd[1],2.0)
                         + std::pow(n*dx_nd[2],2.0);
 
-                        sum+=phi(i+l,j+m,k+n,comp)/dist2;
-                        sumwts+=1.0/dist2;
+                        sum+=phi(i+l,j+m,k+n,comp)/(dist2+TINYVAL2);
+                        sumwts+=1.0/(dist2+TINYVAL2);
 
                     }
                 }
@@ -147,7 +147,7 @@ do_interpolation_dirichlet(int i,int j,int k,int ngrow,
 
         cellval=sum/sumwts;
     }
-
+    
     return(cellval);
 }
 
@@ -175,8 +175,8 @@ do_interpolation_hom_neumann(int i,int j,int k,int ngrow,
                     + std::pow((m*dx_nd[1]-xp_nd[1]),2.0)
                     + std::pow((n*dx_nd[2]-xp_nd[2]),2.0);
 
-                    sum+=phi(i+l,j+m,k+n,comp)/dist2;
-                    sumwts+=1.0/dist2;
+                    sum+=phi(i+l,j+m,k+n,comp)/(dist2+TINYVAL2);
+                    sumwts+=1.0/(dist2+TINYVAL2);
                 }
             }
         }
@@ -193,7 +193,6 @@ do_interpolation_hom_neumann(int i,int j,int k,int ngrow,
     {
         cellval=phi(i,j,k,comp);
     }
-
 
     return(cellval);
 }
@@ -241,8 +240,8 @@ do_interpolation_hom_neumann(int ngrow,
                     + std::pow((m*dx_nd[1]-xp_nd[1]),2.0)
                     + std::pow((n*dx_nd[2]-xp_nd[2]),2.0);
 
-                    sum+=celldata[ind]/dist2;
-                    sumwts+=1.0/dist2;
+                    sum+=celldata[ind]/(dist2+TINYVAL2);
+                    sumwts+=1.0/(dist2+TINYVAL2);
                 }
             }
         }
@@ -309,20 +308,30 @@ update_cutcells(int i, int j, int k,
                                 +  lsgrad[YDIR]*lsgrad[YDIR]
                                 +  lsgrad[ZDIR]*lsgrad[ZDIR]);
 
-        //absolute distance from center
-        Real dist=(phi(i,j,k,VFRAC_INDX)-half)/lsgrad_mag; //can be negative for cells inside solid
+        Real dist=zeroval;
+        Real xp[3]={zeroval};
+        Real lsetnormal[3]={zeroval};
 
-        Real lsetnormal[3]={lsgrad[XDIR]/lsgrad_mag,lsgrad[YDIR]/lsgrad_mag,lsgrad[ZDIR]/lsgrad_mag};
-
-        //minus sign to move back along the normal
-        Real xp[3]={-dist*lsetnormal[0],-dist*lsetnormal[1],-dist*lsetnormal[2]};
+        //can be zero for some under-resolved cases
+        if(lsgrad_mag > TINYVAL)
+        {
+                //absolute distance from center
+                //can be negative for cells inside solid
+                dist=(phi(i,j,k,VFRAC_INDX)-half)/lsgrad_mag; 
+                
+                for(int d=0;d<3;d++)
+                {
+                        lsetnormal[d]=lsgrad[d]/lsgrad_mag;
+                        xp[d]=-dist*lsetnormal[d];
+                }
+        }
 
         phi(i,j,k,VELX_INDX)=do_interpolation_dirichlet(i,j,k,STENCILGROW,dist,closest_dist,0.0,phi,VELX_INDX,dx);
         phi(i,j,k,VELY_INDX)=do_interpolation_dirichlet(i,j,k,STENCILGROW,dist,closest_dist,0.0,phi,VELY_INDX,dx);
         phi(i,j,k,VELZ_INDX)=do_interpolation_dirichlet(i,j,k,STENCILGROW,dist,closest_dist,0.0,phi,VELZ_INDX,dx);
 
         phi(i,j,k,PRES_INDX)=do_interpolation_hom_neumann(i,j,k,STENCILGROW,xp,phi,PRES_INDX,dx);
-        
+
         //adiabatic wall for now
         phi(i,j,k,TEMP_INDX)=do_interpolation_hom_neumann(i,j,k,STENCILGROW,xp,phi,TEMP_INDX,dx);
 
@@ -342,7 +351,11 @@ update_cutcells(int i, int j, int k,
             {
                 consvars[NCVARS+sp]=phi(i,j,k,FLO_NVARS+sp);
             }
-            if(!use_bg_gas)
+
+            phi(i,j,k,DENS_INDX)=do_interpolation_hom_neumann(i,j,k,STENCILGROW,xp,phi,DENS_INDX,dx);
+            
+            //need to fix this
+            /*if(!use_bg_gas)
             {
                 phi(i,j,k,DENS_INDX)=mflo_thermo::get_r_from_c(consvars+NCVARS); 
             }
@@ -373,10 +386,8 @@ update_cutcells(int i, int j, int k,
                 }
                 Real bgconc=do_interpolation_hom_neumann(STENCILGROW,xp,vfrac,celldata,dx);
                 phi(i,j,k,DENS_INDX)=mflo_thermo::get_r_from_c(consvars+NCVARS,bgconc);
-            } 
+            }*/
         }
-        //amrex::Print()<<"vars:"<<phi(i,j,k,VELX_INDX)<<"\t"<<phi(i,j,k,VELY_INDX)<<"\t"<<phi(i,j,k,VELZ_INDX)<<
-        //"\t"<<phi(i,j,k,PRES_INDX)<<"\t"<<phi(i,j,k,DENS_INDX)<<"\n";
 
         primvars[DENS_IND] = phi(i,j,k,DENS_INDX);
         primvars[VELX_IND] = phi(i,j,k,VELX_INDX);
