@@ -83,6 +83,68 @@ void get_higherorder_states(Real uL,Real uR,
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
+void compute_flux_weno(int i, int j, int k,int sweepdir,
+                  Array4<Real> const& phi, //state variable
+                  Array4<Real> const& fluid_transpcoeffs,
+                  Array4<Real> const& specdiff,
+                  Array4<Real> const& fx,
+                  const GpuArray<Real, AMREX_SPACEDIM>& dx,
+                  int hyperbolics_order,Real dissfactor,bool nsflag,
+                  int spec_in_solid)
+{
+    Real uim2[NCVARS+NUM_SPECIES],uim1[NCVARS+NUM_SPECIES];
+    Real ui[NCVARS+NUM_SPECIES];
+    Real uip1[NCVARS+NUM_SPECIES],uip2[NCVARS+NUM_SPECIES];
+    
+    Real fim2[NCVARS+NUM_SPECIES],fim1[NCVARS+NUM_SPECIES];
+    Real fi[NCVARS+NUM_SPECIES];
+    Real fip1[NCVARS+NUM_SPECIES],fip2[NCVARS+NUM_SPECIES];
+
+    Real fiphalf[NCVARS+NUM_SPECIES]={zeroval};
+    Real fimhalf[NCVARS+NUM_SPECIES]={zeroval};
+    Real normal[AMREX_SPACEDIM]={zeroval};
+    normal[sweepdir] = one;
+
+    IntVect ivm2(i, j, k);
+    IntVect ivm1(i, j, k);
+    IntVect iv(i, j, k);
+    IntVect ivp1(i, j, k);
+    IntVect ivp2(i, j, k);
+
+    ivm2[sweepdir]          -= 2;
+    ivm1[sweepdir]          -= 1;
+    ivp1[sweepdir]          += 1;
+    ivp2[sweepdir]          += 2;
+    
+    for(int c=0;c<NCVARS;c++)
+    {
+        uim2[c+RHO_IND] = phi(ivm2, c+RHO_INDX);
+        uim1[c+RHO_IND] = phi(ivm1, c+RHO_INDX);
+        ui[c+RHO_IND]   = phi(iv,   c+RHO_INDX);
+        uip1[c+RHO_IND] = phi(ivp1, c+RHO_INDX);
+        uip2[c+RHO_IND] = phi(ivp2, c+RHO_INDX);
+    }
+    for(int c=0;c<NUM_SPECIES;c++)
+    {
+        uim2[c+NCVARS] = phi(ivm2, c+FLO_NVARS);
+        uim1[c+NCVARS] = phi(ivm1, c+FLO_NVARS);
+        ui[c+NCVARS]   = phi(iv,   c+FLO_NVARS);
+        uip1[c+NCVARS] = phi(ivp1, c+FLO_NVARS);
+        uip2[c+NCVARS] = phi(ivp2, c+FLO_NVARS);
+    }
+    
+    geteulerflux(uim2,fim2,normal);
+    geteulerflux(uim1,fim1,normal);
+    geteulerflux(ui,fi,normal);
+    geteulerflux(uip1,fip1,normal);
+    geteulerflux(uip2,fip2,normal);
+
+    weno_reconstruct(fim2,fim1,fi,fip1,fip2,fimhalf,fiphalf);
+
+}
+
+AMREX_GPU_DEVICE
+AMREX_FORCE_INLINE
 void compute_flux(int i, int j, int k,int sweepdir,
                   Array4<Real> const& phi, //state variable
                   Array4<Real> const& fluid_transpcoeffs,

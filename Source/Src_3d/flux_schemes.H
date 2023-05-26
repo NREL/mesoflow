@@ -315,4 +315,71 @@ void central_with_diss_flux(Real uim1[NCVARS+NUM_SPECIES],Real ui[NCVARS+NUM_SPE
 
 }
 //==========================================================================================
+// WENO 5 JS (Original Jiang GS, Shu CW. Efficient Implementation of Weighted
+// ENO Schemes.
+//             J. Comput. Phys. 1996; 126(1): 202–228.
+//             doi: 10.1006/jcph.1996.0130)
+// @param s      Stencils i-2, i-1, i, i+1, i+2
+// @param sm     The value of the interpolation on the left edge of the i cell
+// @param sp     The value of the interpolation on the right edge of the i cell
+AMREX_GPU_DEVICE
+AMREX_FORCE_INLINE
+void
+weno_reconstruct(const amrex::Real* s, amrex::Real& sm, amrex::Real& sp)
+{
+  constexpr amrex::Real eps = 1e-6;
+
+  amrex::Real vl[3];
+  amrex::Real vr[3];
+  amrex::Real beta[3];
+  amrex::Real alpha[3];
+
+  beta[2] = (13.0 / 12.0) * pow(s[0] - 2.0 * s[1] + s[2], 2) +
+            0.25 * pow(s[0] - 4.0 * s[1] + 3.0 * s[2], 2);
+  beta[1] = (13.0 / 12.0) * pow(s[1] - 2.0 * s[2] + s[3], 2) +
+            0.25 * (s[1] - s[3]) * (s[1] - s[3]);
+  beta[0] = (13.0 / 12.0) * pow(s[2] - 2.0 * s[3] + s[4], 2) +
+            0.25 * pow(3.0 * s[2] - 4.0 * s[3] + s[4], 2);
+
+  beta[2] = 1.0 / ((eps + beta[2]) * (eps + beta[2]));
+  beta[1] = 1.0 / ((eps + beta[1]) * (eps + beta[1]));
+  beta[0] = 1.0 / ((eps + beta[0]) * (eps + beta[0]));
+
+  alpha[2] = beta[2];
+  alpha[1] = 6.0 * beta[1];
+  alpha[0] = 3.0 * beta[0];
+  amrex::Real alpha1 = 1.0 / (alpha[2] + alpha[1] + alpha[0]);
+
+  vl[2] = 2.0 * s[0] - 7.0 * s[1] + 11.0 * s[2];
+  vl[1] = -s[1] + 5.0 * s[2] + 2.0 * s[3];
+  vl[0] = 2.0 * s[2] + 5.0 * s[3] - s[4];
+
+  sp = (1.0 / 6.0) * alpha1 *
+       (alpha[2] * vl[2] + alpha[1] * vl[1] + alpha[0] * vl[0]);
+
+  beta[2] = (13.0 / 12.0) * pow(s[4] - 2.0 * s[3] + s[2], 2) +
+            0.25 * pow(s[4] - 4.0 * s[3] + 3.0 * s[2], 2);
+  beta[1] = (13.0 / 12.0) * pow(s[3] - 2.0 * s[2] + s[1], 2) +
+            0.25 * (s[3] - s[1]) * (s[3] - s[1]);
+  beta[0] = (13.0 / 12.0) * pow(s[2] - 2.0 * s[1] + s[0], 2) +
+            0.25 * pow(3.0 * s[2] - 4.0 * s[1] + s[0], 2);
+
+  beta[2] = 1.0 / ((eps + beta[2]) * (eps + beta[2]));
+  beta[1] = 1.0 / ((eps + beta[1]) * (eps + beta[1]));
+  beta[0] = 1.0 / ((eps + beta[0]) * (eps + beta[0]));
+
+  alpha[2] = beta[2];
+  alpha[1] = 6.0 * beta[1];
+  alpha[0] = 3.0 * beta[0];
+  alpha1 = 1.0 / (alpha[2] + alpha[1] + alpha[0]);
+
+  vr[2] = 11.0 * s[2] - 7.0 * s[3] + 2.0 * s[4];
+  vr[1] = -s[3] + 5.0 * s[2] + 2.0 * s[1];
+  vr[0] = 2.0 * s[2] + 5.0 * s[1] - s[0];
+
+  sm = (1.0 / 6.0) * alpha1 *
+       (alpha[2] * vr[2] + alpha[1] * vr[1] + alpha[0] * vr[0]);
+}
+
+
 #endif
