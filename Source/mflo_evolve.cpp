@@ -372,7 +372,7 @@ void mflo::timeStep(int lev, Real time, int iteration, bool only_flow)
 
 void mflo::Advance_coupled(int lev, Real time, Real dt_lev, int iteration, int ncycle,bool only_flow)
 {
-    constexpr int num_grow = 2;
+    constexpr int num_grow = 3;
     std::swap(phi_old[lev], phi_new[lev]); // old becomes new and new becomes
                                            // old
     t_old[lev] = t_new[lev];        // old time is now current time (time)
@@ -426,7 +426,7 @@ void mflo::Advance_coupled(int lev, Real time, Real dt_lev, int iteration, int n
 
 void mflo::Advance_chemistry(int lev, Real time, Real dt_lev)
 {
-    constexpr int num_grow = 2;
+    constexpr int num_grow = 3;
     std::swap(phi_old[lev], phi_new[lev]); // old becomes new and new becomes old
     MultiFab& S_new = phi_new[lev]; // this is the old value, beware!
     MultiFab& S_old = phi_old[lev]; // current value
