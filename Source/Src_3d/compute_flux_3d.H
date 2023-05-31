@@ -92,55 +92,80 @@ void compute_flux_weno(int i, int j, int k,int sweepdir,
                   int hyperbolics_order,Real dissfactor,bool nsflag,
                   int spec_in_solid)
 {
-    Real uim2[NCVARS+NUM_SPECIES],uim1[NCVARS+NUM_SPECIES];
-    Real ui[NCVARS+NUM_SPECIES];
-    Real uip1[NCVARS+NUM_SPECIES],uip2[NCVARS+NUM_SPECIES];
+    Real ur[NCVARS+NUM_SPECIES],urp1[NCVARS+NUM_SPECIES],urp2[NCVARS+NUM_SPECIES];
+    Real ul[NCVARS+NUM_SPECIES],ulm1[NCVARS+NUM_SPECIES],ulm2[NCVARS+NUM_SPECIES];
     
-    Real fim2[NCVARS+NUM_SPECIES],fim1[NCVARS+NUM_SPECIES];
-    Real fi[NCVARS+NUM_SPECIES];
-    Real fip1[NCVARS+NUM_SPECIES],fip2[NCVARS+NUM_SPECIES];
+    Real fr[NCVARS+NUM_SPECIES],frp1[NCVARS+NUM_SPECIES],frp2[NCVARS+NUM_SPECIES];
+    Real fl[NCVARS+NUM_SPECIES],flm1[NCVARS+NUM_SPECIES],flm2[NCVARS+NUM_SPECIES];
 
-    Real fiphalf[NCVARS+NUM_SPECIES]={zeroval};
-    Real fimhalf[NCVARS+NUM_SPECIES]={zeroval};
+    Real fphalf[NCVARS+NUM_SPECIES]={zeroval};
+    Real fmhalf[NCVARS+NUM_SPECIES]={zeroval};
+    Real uphalf[NCVARS+NUM_SPECIES]={zeroval};
+    Real umhalf[NCVARS+NUM_SPECIES]={zeroval};
+    
     Real normal[AMREX_SPACEDIM]={zeroval};
     normal[sweepdir] = one;
+    Real lambda_max;
+
+    lambda_max=get_max_eigenvalue(ul,ur,normal);
 
     IntVect ivm2(i, j, k);
     IntVect ivm1(i, j, k);
     IntVect iv(i, j, k);
     IntVect ivp1(i, j, k);
     IntVect ivp2(i, j, k);
+    IntVect ivp3(i, j, k);
 
     ivm2[sweepdir]          -= 2;
     ivm1[sweepdir]          -= 1;
     ivp1[sweepdir]          += 1;
     ivp2[sweepdir]          += 2;
+    ivp3[sweepdir]          += 3;
     
     for(int c=0;c<NCVARS;c++)
     {
-        uim2[c+RHO_IND] = phi(ivm2, c+RHO_INDX);
-        uim1[c+RHO_IND] = phi(ivm1, c+RHO_INDX);
-        ui[c+RHO_IND]   = phi(iv,   c+RHO_INDX);
-        uip1[c+RHO_IND] = phi(ivp1, c+RHO_INDX);
-        uip2[c+RHO_IND] = phi(ivp2, c+RHO_INDX);
+        ul[c+RHO_IND]   = phi(iv,  c+RHO_INDX);
+        ulm1[c+RHO_IND] = phi(ivm1,c+RHO_INDX);
+        ulm2[c+RHO_IND] = phi(ivm2,c+RHO_INDX);
+
+        ur[c+RHO_IND]   = phi(ivp1, c+RHO_INDX);
+        urp1[c+RHO_IND] = phi(ivp2, c+RHO_INDX);
+        urp2[c+RHO_IND] = phi(ivp3, c+RHO_INDX);
     }
     for(int c=0;c<NUM_SPECIES;c++)
     {
-        uim2[c+NCVARS] = phi(ivm2, c+FLO_NVARS);
-        uim1[c+NCVARS] = phi(ivm1, c+FLO_NVARS);
-        ui[c+NCVARS]   = phi(iv,   c+FLO_NVARS);
-        uip1[c+NCVARS] = phi(ivp1, c+FLO_NVARS);
-        uip2[c+NCVARS] = phi(ivp2, c+FLO_NVARS);
+        ul[c+NCVARS]   = phi(iv,  c+FLO_NVARS);
+        ulm1[c+NCVARS] = phi(ivm1,c+FLO_NVARS);
+        ulm2[c+NCVARS] = phi(ivm2,c+FLO_NVARS);
+
+        ur[c+NCVARS]   = phi(ivp1, c+FLO_NVARS);
+        urp1[c+NCVARS] = phi(ivp2, c+FLO_NVARS);
+        urp2[c+NCVARS] = phi(ivp3, c+FLO_NVARS);
     }
     
-    geteulerflux(uim2,fim2,normal);
-    geteulerflux(uim1,fim1,normal);
-    geteulerflux(ui,fi,normal);
-    geteulerflux(uip1,fip1,normal);
-    geteulerflux(uip2,fip2,normal);
+    geteulerflux(ul,fl,normal);
+    geteulerflux(ulm1,flm1,normal);
+    geteulerflux(ulm2,flm2,normal);
+    
+    geteulerflux(ur,fr,normal);
+    geteulerflux(urp1,frp1,normal);
+    geteulerflux(urp2,frp2,normal);
 
-    weno_reconstruct(fim2,fim1,fi,fip1,fip2,fimhalf,fiphalf);
+    weno_reconstruct(flm2,flm1,fl,fr,frp1,frp2,fmhalf,fphalf);
+    weno_reconstruct(ulm2,ulm1,ul,ur,urp1,urp2,umhalf,uphalf);
 
+    for(int c=0;c<NCVARS;c++)
+    {
+        fx(iv,c+RHO_INDX)=half*(fphalf[c]+lambda_max*uphalf[c]) +
+                          half*(fmhalf[c]-lambda_max*umhalf[c]);
+    }
+    
+    for(int sp=0;sp<NUM_SPECIES;sp++)
+    {
+        fx(iv,FLO_NVARS+sp) = mflo_species::advect_flags[sp]*
+                             (half*(fphalf[NCVARS+sp] + lambda_max*uphalf[NCVARS+sp]) +
+                              half*(fmhalf[NCVARS+sp] - lambda_max*umhalf[NCVARS+sp]) );
+    }
 }
 
 AMREX_GPU_DEVICE

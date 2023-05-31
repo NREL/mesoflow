@@ -5,6 +5,45 @@
 #include <consprim_funcs.H>
 #include <thermo.H>
 
+
+//==========================================================================================
+AMREX_GPU_DEVICE
+    AMREX_FORCE_INLINE
+amrex::Real get_max_eigenvalue(Real ul[NCVARS+NUM_SPECIES],Real ur[NCVARS+NUM_SPECIES],Real n[AMREX_SPACEDIM])
+{
+    Real presL,presR;
+    Real rhoL,rhoR;
+    Real ahalf;
+    Real veln_L,veln_R,veln;
+    Real gamaL,gamaR;
+    Real rhoeL,rhoeR;
+
+    rhoL=ul[RHO_IND];
+    rhoR=ur[RHO_IND];
+    
+    rhoeL=ul[RHOE_IND] - half*(ul[RHOU_IND]*ul[RHOU_IND] +
+                               ul[RHOV_IND]*ul[RHOV_IND] +
+                               ul[RHOW_IND]*ul[RHOW_IND])/ul[RHO_IND];
+    
+    rhoeR=ur[RHOE_IND] - half*(ur[RHOU_IND]*ur[RHOU_IND] +
+                               ur[RHOV_IND]*ur[RHOV_IND] +
+                               ur[RHOW_IND]*ur[RHOW_IND])/ur[RHO_IND];
+
+    presL = mflo_thermo::get_p_from_rec(rhoeL,ul[RHO_IND],ul+NCVARS);
+    presR = mflo_thermo::get_p_from_rec(rhoeR,ur[RHO_IND],ul+NCVARS);
+
+    veln_L  = (ul[RHOU_IND]*n[0] + ul[RHOV_IND]*n[1] + ul[RHOW_IND]*n[2])/ul[RHO_IND];
+    veln_R  = (ur[RHOU_IND]*n[0] + ur[RHOV_IND]*n[1] + ur[RHOW_IND]*n[2])/ur[RHO_IND];
+
+    veln = std::max(fabs(veln_L),fabs(veln_R));
+
+    gamaL=mflo_thermo::get_gama_from_rpc(rhoL,presL,ul+NCVARS);
+    gamaR=mflo_thermo::get_gama_from_rpc(rhoR,presR,ur+NCVARS);
+
+    ahalf = std::max(sqrt(gamaL*presL/rhoL), sqrt(gamaR*presR/rhoR));
+
+    return(ahalf+veln);
+}
 //==========================================================================================
 AMREX_GPU_DEVICE
     AMREX_FORCE_INLINE
@@ -319,67 +358,84 @@ void central_with_diss_flux(Real uim1[NCVARS+NUM_SPECIES],Real ui[NCVARS+NUM_SPE
 // ENO Schemes.
 //             J. Comput. Phys. 1996; 126(1): 202–228.
 //             doi: 10.1006/jcph.1996.0130)
-// @param s      Stencils i-2, i-1, i, i+1, i+2
+// @param s      Stencils i-2, i-1, i, i+1, i+2, i+3
 // @param sm     The value of the interpolation on the left edge of the i cell
 // @param sp     The value of the interpolation on the right edge of the i cell
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
 void
-weno_reconstruct(const amrex::Real* s, amrex::Real& sm, amrex::Real& sp)
+weno_reconstruct(Real uim2[NCVARS+NUM_SPECIES],
+                 Real uim1[NCVARS+NUM_SPECIES],
+                 Real ui[NCVARS+NUM_SPECIES],
+                 Real uip1[NCVARS+NUM_SPECIES],
+                 Real uip2[NCVARS+NUM_SPECIES],
+                 Real uip3[NCVARS+NUM_SPECIES],
+                 Real umhalf[NCVARS+NUM_SPECIES],
+                 Real uphalf[NCVARS+NUM_SPECIES])
 {
-  constexpr amrex::Real eps = 1e-6;
+    constexpr amrex::Real eps = 1e-6;
+    amrex::Real vl[3];
+    amrex::Real vr[3];
+    amrex::Real beta[3];
+    amrex::Real alpha[3];
+    amrex::Real s[6];
 
-  amrex::Real vl[3];
-  amrex::Real vr[3];
-  amrex::Real beta[3];
-  amrex::Real alpha[3];
+    for(int c=0;c<(NCVARS+NUM_SPECIES);c++)
+    {
 
-  beta[2] = (13.0 / 12.0) * pow(s[0] - 2.0 * s[1] + s[2], 2) +
-            0.25 * pow(s[0] - 4.0 * s[1] + 3.0 * s[2], 2);
-  beta[1] = (13.0 / 12.0) * pow(s[1] - 2.0 * s[2] + s[3], 2) +
-            0.25 * (s[1] - s[3]) * (s[1] - s[3]);
-  beta[0] = (13.0 / 12.0) * pow(s[2] - 2.0 * s[3] + s[4], 2) +
-            0.25 * pow(3.0 * s[2] - 4.0 * s[3] + s[4], 2);
+        s[0] = uim2[c];
+        s[1] = uim1[c];
+        s[2] = ui[c];
 
-  beta[2] = 1.0 / ((eps + beta[2]) * (eps + beta[2]));
-  beta[1] = 1.0 / ((eps + beta[1]) * (eps + beta[1]));
-  beta[0] = 1.0 / ((eps + beta[0]) * (eps + beta[0]));
+        s[3] = uip1[c];
+        s[4] = uip2[c];
+        s[5] = uip3[c];
 
-  alpha[2] = beta[2];
-  alpha[1] = 6.0 * beta[1];
-  alpha[0] = 3.0 * beta[0];
-  amrex::Real alpha1 = 1.0 / (alpha[2] + alpha[1] + alpha[0]);
+        beta[2] = (13.0 / 12.0) * pow(s[0] - 2.0 * s[1] + s[2], 2) +
+        0.25 * pow(s[0] - 4.0 * s[1] + 3.0 * s[2], 2);
+        beta[1] = (13.0 / 12.0) * pow(s[1] - 2.0 * s[2] + s[3], 2) +
+        0.25 * (s[1] - s[3]) * (s[1] - s[3]);
+        beta[0] = (13.0 / 12.0) * pow(s[2] - 2.0 * s[3] + s[4], 2) +
+        0.25 * pow(3.0 * s[2] - 4.0 * s[3] + s[4], 2);
 
-  vl[2] = 2.0 * s[0] - 7.0 * s[1] + 11.0 * s[2];
-  vl[1] = -s[1] + 5.0 * s[2] + 2.0 * s[3];
-  vl[0] = 2.0 * s[2] + 5.0 * s[3] - s[4];
+        beta[2] = 1.0 / ((eps + beta[2]) * (eps + beta[2]));
+        beta[1] = 1.0 / ((eps + beta[1]) * (eps + beta[1]));
+        beta[0] = 1.0 / ((eps + beta[0]) * (eps + beta[0]));
 
-  sp = (1.0 / 6.0) * alpha1 *
-       (alpha[2] * vl[2] + alpha[1] * vl[1] + alpha[0] * vl[0]);
+        alpha[2] = beta[2];
+        alpha[1] = 6.0 * beta[1];
+        alpha[0] = 3.0 * beta[0];
+        amrex::Real alpha1 = 1.0 / (alpha[2] + alpha[1] + alpha[0]);
 
-  beta[2] = (13.0 / 12.0) * pow(s[4] - 2.0 * s[3] + s[2], 2) +
-            0.25 * pow(s[4] - 4.0 * s[3] + 3.0 * s[2], 2);
-  beta[1] = (13.0 / 12.0) * pow(s[3] - 2.0 * s[2] + s[1], 2) +
-            0.25 * (s[3] - s[1]) * (s[3] - s[1]);
-  beta[0] = (13.0 / 12.0) * pow(s[2] - 2.0 * s[1] + s[0], 2) +
-            0.25 * pow(3.0 * s[2] - 4.0 * s[1] + s[0], 2);
+        vl[2] = 2.0 * s[0] - 7.0 * s[1] + 11.0 * s[2];
+        vl[1] = -s[1] + 5.0 * s[2] + 2.0 * s[3];
+        vl[0] = 2.0 * s[2] + 5.0 * s[3] - s[4];
 
-  beta[2] = 1.0 / ((eps + beta[2]) * (eps + beta[2]));
-  beta[1] = 1.0 / ((eps + beta[1]) * (eps + beta[1]));
-  beta[0] = 1.0 / ((eps + beta[0]) * (eps + beta[0]));
+        uphalf[c] = (1.0 / 6.0) * alpha1 *
+        (alpha[2] * vl[2] + alpha[1] * vl[1] + alpha[0] * vl[0]);
 
-  alpha[2] = beta[2];
-  alpha[1] = 6.0 * beta[1];
-  alpha[0] = 3.0 * beta[0];
-  alpha1 = 1.0 / (alpha[2] + alpha[1] + alpha[0]);
+        beta[2] = (13.0 / 12.0) * pow(s[5] - 2.0 * s[4] + s[3], 2) +
+        0.25 * pow(s[5] - 4.0 * s[4] + 3.0 * s[3], 2);
+        beta[1] = (13.0 / 12.0) * pow(s[4] - 2.0 * s[3] + s[2], 2) +
+        0.25 * (s[4] - s[2]) * (s[4] - s[2]);
+        beta[0] = (13.0 / 12.0) * pow(s[3] - 2.0 * s[2] + s[1], 2) +
+        0.25 * pow(3.0 * s[3] - 4.0 * s[2] + s[1], 2);
 
-  vr[2] = 11.0 * s[2] - 7.0 * s[3] + 2.0 * s[4];
-  vr[1] = -s[3] + 5.0 * s[2] + 2.0 * s[1];
-  vr[0] = 2.0 * s[2] + 5.0 * s[1] - s[0];
+        beta[2] = 1.0 / ((eps + beta[2]) * (eps + beta[2]));
+        beta[1] = 1.0 / ((eps + beta[1]) * (eps + beta[1]));
+        beta[0] = 1.0 / ((eps + beta[0]) * (eps + beta[0]));
 
-  sm = (1.0 / 6.0) * alpha1 *
-       (alpha[2] * vr[2] + alpha[1] * vr[1] + alpha[0] * vr[0]);
+        alpha[2] = beta[2];
+        alpha[1] = 6.0 * beta[1];
+        alpha[0] = 3.0 * beta[0];
+        alpha1 = 1.0 / (alpha[2] + alpha[1] + alpha[0]);
+
+        vr[2] = 11.0 * s[3] - 7.0 * s[4] + 2.0 * s[5];
+        vr[1] = -s[4] + 5.0 * s[3] + 2.0 * s[2];
+        vr[0] = 2.0 * s[3] + 5.0 * s[2] - s[1];
+
+        umhalf[c] = (1.0 / 6.0) * alpha1 *
+        (alpha[2] * vr[2] + alpha[1] * vr[1] + alpha[0] * vr[0]);
+    }
 }
-
-
 #endif
