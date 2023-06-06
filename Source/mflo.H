@@ -97,6 +97,7 @@ public:
         MultiFab& dsdt,
         Real time,
         Real dt,
+        Real fluxfactor,
         bool reflux_this_stage);
     
     void compute_dsdt_chemistry(

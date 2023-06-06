@@ -9,6 +9,8 @@
 #define five 5.0
 #define two3rd 0.6666666666666666667
 #define half 0.5
+#define third (two3rd*half)
+#define sixth (two3rd*half*half)
 #define eighth 0.125
 #define sixteenth 0.0625
 #define twelveth 0.08333333333
