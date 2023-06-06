@@ -573,7 +573,7 @@ void mflo::update_cutcell_data(
     const int num_grow,
     MultiFab& Sborder,
     Real time,
-    Real dt)
+    Real dtstep)
 {
     int ncomp = Sborder.nComp();
     auto prob_lo = geom[lev].ProbLoArray();
@@ -600,13 +600,13 @@ void mflo::compute_dsdt_flow(
         MultiFab& Sborder,
         MultiFab& dsdt,
         Real time,
-        Real dt,
+        Real tstep,
         Real fluxfactor,
         bool reflux_this_stage)
 {
 
     const auto dx = geom[lev].CellSizeArray();
-    const Real* prob_lo = geom[lev].ProbLo();
+    const auto prob_lo = geom[lev].ProbLoArray();
     bool nsflag=(do_ns==1)?true:false;
 
     int ncomp = Sborder.nComp();
@@ -651,7 +651,6 @@ void mflo::compute_dsdt_flow(
 
             GpuArray<Array4<Real>, AMREX_SPACEDIM> flux_arr{AMREX_D_DECL(
                     flux[0].array(mfi), flux[1].array(mfi), flux[2].array(mfi))};
-            auto prob_lo = geom[lev].ProbLoArray();
 
             amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
             {
@@ -673,7 +672,7 @@ void mflo::compute_dsdt_flow(
             amrex::ParallelFor(
                     amrex::growHi(bx, 0, 1),
                     [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                    compute_flux(
+                    compute_flux_weno(
                     i, j, k, XDIR, sborder_arr, fluid_transport_arr, 
                     specdiff_arr, flux_arr[0], 
                     dx, hyperbolics_order,hyperbolics_dissfactor,nsflag,spec_in_solid);
@@ -682,7 +681,7 @@ void mflo::compute_dsdt_flow(
             amrex::ParallelFor(
                     amrex::growHi(bx, 1, 1),
                     [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                    compute_flux(
+                    compute_flux_weno(
                     i, j, k, YDIR, sborder_arr, fluid_transport_arr, 
                     specdiff_arr, flux_arr[1], 
                     dx, hyperbolics_order,hyperbolics_dissfactor,nsflag,spec_in_solid);
@@ -691,7 +690,7 @@ void mflo::compute_dsdt_flow(
             amrex::ParallelFor(
                     amrex::growHi(bx, 2, 1),
                     [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                    compute_flux(
+                    compute_flux_weno(
                     i, j, k, ZDIR, sborder_arr, fluid_transport_arr, 
                     specdiff_arr, flux_arr[2], 
                     dx, hyperbolics_order,hyperbolics_dissfactor,nsflag,spec_in_solid);
@@ -718,7 +717,7 @@ void mflo::compute_dsdt_flow(
                 const Real dA =
                     (i == 0) ? dx[1] * dx[2]
                     : ((i == 1) ? dx[0] * dx[2] : dx[0] * dx[1]);
-                const Real scale = -dt * dA * fluxfactor;
+                const Real scale = -tstep * dA * fluxfactor;
                 flux_reg[lev + 1]->CrseInit(flux[i], i, 0, 0, ncomp, scale, FluxRegister::ADD);
             }
         }
@@ -730,8 +729,8 @@ void mflo::compute_dsdt_flow(
                 const Real dA =
                     (i == 0) ? dx[1] * dx[2]
                     : ((i == 1) ? dx[0] * dx[2] : dx[0] * dx[1]);
-                const Real scale = dt * dA * fluxfactor;
-                flux_reg[lev]->FineAdd(flux[i], i, 0, 0, ncomp, scale, FluxRegister::ADD);
+                const Real scale = tstep * dA * fluxfactor;
+                flux_reg[lev]->FineAdd(flux[i], i, 0, 0, ncomp, scale);
             }
         }
     }

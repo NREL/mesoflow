@@ -308,8 +308,8 @@ void central_with_diss_flux(Real uim1[NCVARS+NUM_SPECIES],Real ui[NCVARS+NUM_SPE
                             Real uim2[NCVARS+NUM_SPECIES],Real uip1[NCVARS+NUM_SPECIES],
         Real fhalf[NCVARS+NUM_SPECIES],Real n[AMREX_SPACEDIM],Real dissfactor)
 {
-    Real fim1[NCVARS],fi[NCVARS],
-         fim2[NCVARS],fip1[NCVARS];
+    Real fim1[NCVARS+NUM_SPECIES],fi[NCVARS+NUM_SPECIES],
+         fim2[NCVARS+NUM_SPECIES],fip1[NCVARS+NUM_SPECIES];
     Real presL,presR;
     Real rhoL,rhoR;
     Real ahalf;

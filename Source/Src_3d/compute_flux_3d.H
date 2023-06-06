@@ -166,6 +166,10 @@ void compute_flux_weno(int i, int j, int k,int sweepdir,
     {
         fx(iv,c+RHO_INDX)=half*(fphalf[c]+lambda_max*uphalf[c]) +
                           half*(fmhalf[c]-lambda_max*umhalf[c]);
+        
+        //fx(iv,c+RHO_INDX)=half*(fl[c]+lambda_max*ul[c]) +
+        //                  half*(fr[c]-lambda_max*ur[c]);
+
 
         //amrex::Print()<<"lambda_max:"<<lambda_max<<"\t"
         //<<"\t"<<ulm2[c]<<"\t"<<
