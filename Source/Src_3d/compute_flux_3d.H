@@ -30,7 +30,8 @@ Real minmod_flux_limiter(Real r)
 
 AMREX_GPU_DEVICE
     AMREX_FORCE_INLINE
-void get_higherorder_states(Real uL[NCVARS+NUM_SPECIES],Real uR[NCVARS+NUM_SPECIES],
+void get_higherorder_states(Real uLh[NCVARS+NUM_SPECIES],Real uRh[NCVARS+NUM_SPECIES],
+                            Real uL[NCVARS+NUM_SPECIES],Real uR[NCVARS+NUM_SPECIES],
                             Real uim2[NCVARS+NUM_SPECIES],Real uip1[NCVARS+NUM_SPECIES])
 {
     //refer to page 114,chap 4 in Blazek's textbook
@@ -57,8 +58,8 @@ void get_higherorder_states(Real uL[NCVARS+NUM_SPECIES],Real uR[NCVARS+NUM_SPECI
 
     for(int c=0;c<(NCVARS+NUM_SPECIES);c++)
     {
-        uL[c] = uL[c] + half*L[c];    
-        uR[c] = uR[c] - half*L[c];
+        uLh[c] = uL[c] + half*L[c];    
+        uRh[c] = uR[c] - half*L[c];
     }   
 
 }
@@ -81,108 +82,6 @@ void get_higherorder_states(Real uL,Real uR,
     uR = uR - half*L;
 }
 
-AMREX_GPU_DEVICE
-AMREX_FORCE_INLINE
-void compute_flux_weno(int i, int j, int k,int sweepdir,
-                  Array4<Real> const& phi, //state variable
-                  Array4<Real> const& fluid_transpcoeffs,
-                  Array4<Real> const& specdiff,
-                  Array4<Real> const& fx,
-                  const GpuArray<Real, AMREX_SPACEDIM>& dx,
-                  int hyperbolics_order,Real dissfactor,bool nsflag,
-                  int spec_in_solid)
-{
-    Real ur[NCVARS+NUM_SPECIES]={zeroval};
-    Real urp1[NCVARS+NUM_SPECIES]={zeroval};
-    Real urp2[NCVARS+NUM_SPECIES]={zeroval};
-
-    Real ul[NCVARS+NUM_SPECIES]={zeroval};
-    Real ulm1[NCVARS+NUM_SPECIES]={zeroval};
-    Real ulm2[NCVARS+NUM_SPECIES]={zeroval};
-    
-    Real fr[NCVARS+NUM_SPECIES]={zeroval};
-    Real frp1[NCVARS+NUM_SPECIES]={zeroval};
-    Real frp2[NCVARS+NUM_SPECIES]={zeroval};
-    Real fl[NCVARS+NUM_SPECIES]={zeroval};
-    Real flm1[NCVARS+NUM_SPECIES]={zeroval};
-    Real flm2[NCVARS+NUM_SPECIES]={zeroval};
-
-    Real fphalf[NCVARS+NUM_SPECIES]={zeroval};
-    Real fmhalf[NCVARS+NUM_SPECIES]={zeroval};
-    Real uphalf[NCVARS+NUM_SPECIES]={zeroval};
-    Real umhalf[NCVARS+NUM_SPECIES]={zeroval};
-    
-    Real normal[AMREX_SPACEDIM]={zeroval};
-    normal[sweepdir] = one;
-    Real lambda_max;
-
-    IntVect ivm3(i, j, k);
-    IntVect ivm2(i, j, k);
-    IntVect ivm1(i, j, k);
-    IntVect iv(i, j, k);
-    IntVect ivp1(i, j, k);
-    IntVect ivp2(i, j, k);
-
-    ivm3[sweepdir]          -= 3;
-    ivm2[sweepdir]          -= 2;
-    ivm1[sweepdir]          -= 1;
-    ivp1[sweepdir]          += 1;
-    ivp2[sweepdir]          += 2;
-    
-    for(int c=0;c<NCVARS;c++)
-    {
-        ul[c+RHO_IND]   = phi(ivm1, c+RHO_INDX);
-        ulm1[c+RHO_IND] = phi(ivm2, c+RHO_INDX);
-        ulm2[c+RHO_IND] = phi(ivm3, c+RHO_INDX);
-
-        ur[c+RHO_IND]   = phi(iv,   c+RHO_INDX);
-        urp1[c+RHO_IND] = phi(ivp1, c+RHO_INDX);
-        urp2[c+RHO_IND] = phi(ivp2, c+RHO_INDX);
-    }
-    for(int c=0;c<NUM_SPECIES;c++)
-    {
-        ul[c+NCVARS]   = phi(ivm1, c+FLO_NVARS);
-        ulm1[c+NCVARS] = phi(ivm2, c+FLO_NVARS);
-        ulm2[c+NCVARS] = phi(ivm3, c+FLO_NVARS);
-
-        ur[c+NCVARS]   = phi(iv,   c+FLO_NVARS);
-        urp1[c+NCVARS] = phi(ivp1, c+FLO_NVARS);
-        urp2[c+NCVARS] = phi(ivp2, c+FLO_NVARS);
-    }
-    
-    lambda_max=get_max_eigenvalue(ul,ur,normal);
-    geteulerflux(ul,fl,normal);
-    geteulerflux(ulm1,flm1,normal);
-    geteulerflux(ulm2,flm2,normal);
-    
-    geteulerflux(ur,fr,normal);
-    geteulerflux(urp1,frp1,normal);
-    geteulerflux(urp2,frp2,normal);
-
-    weno_reconstruct(flm2,flm1,fl,fr,frp1,frp2,fmhalf,fphalf);
-    weno_reconstruct(ulm2,ulm1,ul,ur,urp1,urp2,umhalf,uphalf);
-
-    for(int c=0;c<NCVARS;c++)
-    {
-        fx(iv,c+RHO_INDX)=half*(fphalf[c]+lambda_max*uphalf[c]) +
-                          half*(fmhalf[c]-lambda_max*umhalf[c]);
-        
-        //fx(iv,c+RHO_INDX)=half*(fl[c]+lambda_max*ul[c]) +
-        //                  half*(fr[c]-lambda_max*ur[c]);
-
-
-        //amrex::Print()<<"lambda_max:"<<lambda_max<<"\t"
-        //<<"\t"<<ulm2[c]<<"\t"<<
-        //urp2[c]<<"\t"<<flm2[c]<<"\t"<<frp2[c]<<"\t"<<iv<<"\n";
-    }
-    
-    for(int sp=0;sp<NUM_SPECIES;sp++)
-    {
-        fx(iv,FLO_NVARS+sp) = mflo_species::advect_flags[sp]*
-        (half*(fphalf[NCVARS+sp] + lambda_max*uphalf[NCVARS+sp]) +
-         half*(fmhalf[NCVARS+sp] - lambda_max*umhalf[NCVARS+sp]) );
-    }
-}
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
@@ -196,13 +95,24 @@ void compute_flux(int i, int j, int k,int sweepdir,
                   int spec_in_solid)
 {
     //|--left1--|--left--|--right--|--right1--|
-    //|--(i-2)--|--(i-1)--|--i--|--(i+1)--|
+    //|--(i-3)--|--(i-2)--|--(i-1)--|--i--|--(i+1)--|--(i+2)--|
     //remember: face i separates (i-1) and i cells
+    
+    Real ur[NCVARS+NUM_SPECIES]={zeroval};
+    Real urp1[NCVARS+NUM_SPECIES]={zeroval};
+    Real urp2[NCVARS+NUM_SPECIES]={zeroval};
 
-    Real ul[NCVARS+NUM_SPECIES],ur[NCVARS+NUM_SPECIES];
+    Real ul[NCVARS+NUM_SPECIES]={zeroval};
+    Real ulm1[NCVARS+NUM_SPECIES]={zeroval};
+    Real ulm2[NCVARS+NUM_SPECIES]={zeroval};
+    
+    //higher order left and right
+    Real ul2[NCVARS+NUM_SPECIES]={zeroval};
+    Real ur2[NCVARS+NUM_SPECIES]={zeroval};
+    
     Real fhalf[NCVARS+NUM_SPECIES]={zeroval};
+
     Real pl[NCVARS],pr[NCVARS];
-    Real ulm1[NCVARS+NUM_SPECIES],urp1[NCVARS+NUM_SPECIES];
     Real normal[AMREX_SPACEDIM]={zeroval};
     Real gradu[3],gradv[3],gradw[3];
     Real dudx,dudy,dudz;
@@ -215,7 +125,14 @@ void compute_flux(int i, int j, int k,int sweepdir,
     Real spec_dcoeff[NUM_SPECIES];
 
     normal[sweepdir] = one;
-
+    
+    IntVect ivm3(i, j, k);
+    IntVect ivm2(i, j, k);
+    IntVect ivm1(i, j, k);
+    IntVect iv(i, j, k);
+    IntVect ivp1(i, j, k);
+    IntVect ivp2(i, j, k);
+    
     IntVect left(i, j, k);
     IntVect right(i, j, k);
     IntVect left1(i, j, k);
@@ -253,6 +170,12 @@ void compute_flux(int i, int j, int k,int sweepdir,
     left1[sweepdir]         -= 2;
     right1[sweepdir]        += 1;
     
+    ivm3[sweepdir]          -= 3;
+    ivm2[sweepdir]          -= 2;
+    ivm1[sweepdir]          -= 1;
+    ivp1[sweepdir]          += 1;
+    ivp2[sweepdir]          += 2;
+    
     visc   = harmonic_mean(fluid_transpcoeffs(i,j,k,VISC_INDX),fluid_transpcoeffs(i-1,j,k,VISC_INDX)); 
     thcond = harmonic_mean(fluid_transpcoeffs(i,j,k,THCOND_INDX),fluid_transpcoeffs(i-1,j,k,THCOND_INDX));
     for(int sp=0;sp<NUM_SPECIES;sp++)
@@ -268,50 +191,85 @@ void compute_flux(int i, int j, int k,int sweepdir,
     
     for(int c=0;c<NCVARS;c++)
     {
-        ul[c+RHO_IND] = phi(left,c+RHO_INDX);
+        ul[c+RHO_IND]   = phi(ivm1, c+RHO_INDX);
+        ulm1[c+RHO_IND] = phi(ivm2, c+RHO_INDX);
+        ulm2[c+RHO_IND] = phi(ivm3, c+RHO_INDX);
+
+        ur[c+RHO_IND]   = phi(iv,   c+RHO_INDX);
+        urp1[c+RHO_IND] = phi(ivp1, c+RHO_INDX);
+        urp2[c+RHO_IND] = phi(ivp2, c+RHO_INDX);
+        
+        /*ul[c+RHO_IND] = phi(left,c+RHO_INDX);
         ur[c+RHO_IND] = phi(right,c+RHO_INDX);
         ulm1[c+RHO_IND] = phi(left1,  c+RHO_INDX);
-        urp1[c+RHO_IND] = phi(right1, c+RHO_INDX);
+        urp1[c+RHO_IND] = phi(right1, c+RHO_INDX);*/
     }
     for(int c=0;c<NUM_SPECIES;c++)
     {
-        ul[c+NCVARS] = phi(left,c+FLO_NVARS);
+        ul[c+NCVARS]   = phi(ivm1, c+FLO_NVARS);
+        ulm1[c+NCVARS] = phi(ivm2, c+FLO_NVARS);
+        ulm2[c+NCVARS] = phi(ivm3, c+FLO_NVARS);
+
+        ur[c+NCVARS]   = phi(iv,   c+FLO_NVARS);
+        urp1[c+NCVARS] = phi(ivp1, c+FLO_NVARS);
+        urp2[c+NCVARS] = phi(ivp2, c+FLO_NVARS);
+        
+        /*ul[c+NCVARS] = phi(left,c+FLO_NVARS);
         ur[c+NCVARS] = phi(right,c+FLO_NVARS);
         ulm1[c+NCVARS] = phi(left1,c+FLO_NVARS);
-        urp1[c+NCVARS] = phi(right1,c+FLO_NVARS);
+        urp1[c+NCVARS] = phi(right1,c+FLO_NVARS);*/
     }
 
     if(nsflag)
     {    
 
-        if(   phi(right1,VFRAC_INDX) < one || phi(right,VFRAC_INDX) < one
-           || phi(left, VFRAC_INDX)  < one || phi(left1,VFRAC_INDX) < one)
+        if(   phi(ivm3,VFRAC_INDX) < one ||
+              phi(ivm2,VFRAC_INDX) < one || 
+              phi(ivm1,VFRAC_INDX) < one ||
+              phi(iv,VFRAC_INDX) < one ||
+              phi(ivp1,VFRAC_INDX) < one || 
+              phi(ivp2,VFRAC_INDX) < one )
         {
             //make things first order
             for(int c=0;c<(NCVARS+NUM_SPECIES);c++)
             {
                 ulm1[c+RHO_IND]=ul[c+RHO_IND];
+                ulm2[c+RHO_IND]=ul[c+RHO_IND];
+
                 urp1[c+RHO_IND]=ur[c+RHO_IND];
+                urp2[c+RHO_IND]=ur[c+RHO_IND];
             }
         }
 
-        if(hyperbolics_order == 2)
-        {
-            get_higherorder_states(ul,ur,ulm1,urp1);
-        }
-        
-        if(hyperbolics_order < 4)
+        if(hyperbolics_order==1)
         {
             ausmp_up_flux(ul,ur,fhalf,normal);
         }
-        else
+        else if(hyperbolics_order==2)
+        {
+            get_higherorder_states(ul2,ur2,ul,ur,ulm1,urp1);
+            ausmp_up_flux(ul2,ur2,fhalf,normal);
+        }
+        else if(hyperbolics_order==4)
         {
             central_with_diss_flux(ul,ur,ulm1,urp1,fhalf,normal,dissfactor);
+        }
+        else if(hyperbolics_order==5)
+        {
+            weno_flux(ulm2,ulm1,ul,ur,urp1,urp2,fhalf,normal);
+        }
+        else
+        {
+           amrex::Abort("unknown hyperbolics scheme");
         }
 
         for(int c=0;c<NCVARS;c++)
         {
             fx(i,j,k,c+RHO_INDX) = fhalf[c+RHO_IND];
+        }
+        for(int sp=0;sp<NUM_SPECIES;sp++)
+        {
+            fx(i,j,k,sp+FLO_NVARS) =  mflo_species::advect_flags[sp]*fhalf[NCVARS+sp];
         }
 
         gradu[0]  = (phi(right,VELX_INDX) - phi(left,VELX_INDX))/dx[sweepdir];
@@ -394,50 +352,52 @@ void compute_flux(int i, int j, int k,int sweepdir,
                                 tau[YDIR][ZDIR]*normal[YDIR] +
                                 tau[ZDIR][ZDIR]*normal[ZDIR] )*facevel[ZDIR];
     }
-
-    //Species convection and diffusion
-    //convection
-    for(int sp=0;sp<NUM_SPECIES;sp++)
+    else
     {
-        Real phi_im2   = phi(left1,FLO_NVARS+sp);
-        Real phi_im1   = phi(left,FLO_NVARS+sp);
-        Real phi_i     = phi(right,FLO_NVARS+sp);
-        Real phi_ip1   = phi(right1,FLO_NVARS+sp);
-
-        Real phiL=phi_im1;
-        Real phiR=phi_i;
-
-        if(!spec_in_solid)
+        //Species convection
+        for(int sp=0;sp<NUM_SPECIES;sp++)
         {
-           if(   phi(right1,VFRAC_INDX) < one || phi(right,VFRAC_INDX) < one
-             || phi(left, VFRAC_INDX)  < one || phi(left1,VFRAC_INDX) < one)
-           {
-                //make things first order
-                phi_im2=phi_im1;
-                phi_ip1=phi_i;
-           }
-        }
-        
-        get_higherorder_states(phiL,phiR,phi_im2,phi_ip1);
-        Real velface=facevel[sweepdir];
-     
-        //if there is transport of species in solid
-        //dont use the reflected velocities
-        if(spec_in_solid)
-        {
-            Real weightL=(phi(left,VFRAC_INDX)<one)?zeroval:one;
-            Real weightR=(phi(left,VFRAC_INDX)<one)?zeroval:one;
+            Real phi_im2   = phi(left1,FLO_NVARS+sp);
+            Real phi_im1   = phi(left,FLO_NVARS+sp);
+            Real phi_i     = phi(right,FLO_NVARS+sp);
+            Real phi_ip1   = phi(right1,FLO_NVARS+sp);
 
-            velface=(weightL*phi(left,VELX_INDX+sweepdir)
-            +weightR*phi(right,VELX_INDX+sweepdir))/(weightL+weightR+TINYVAL);
-            
+            Real phiL=phi_im1;
+            Real phiR=phi_i;
+
+            if(!spec_in_solid)
+            {
+                if(   phi(right1,VFRAC_INDX) < one || phi(right,VFRAC_INDX) < one
+                   || phi(left, VFRAC_INDX)  < one || phi(left1,VFRAC_INDX) < one)
+                {
+                    //make things first order
+                    phi_im2=phi_im1;
+                    phi_ip1=phi_i;
+                }
+            }
+
+            get_higherorder_states(phiL,phiR,phi_im2,phi_ip1);
+            Real velface=facevel[sweepdir];
+
+            //if there is transport of species in solid
+            //dont use the reflected velocities
+            if(spec_in_solid)
+            {
+                Real weightL=(phi(left,VFRAC_INDX)<one)?zeroval:one;
+                Real weightR=(phi(left,VFRAC_INDX)<one)?zeroval:one;
+
+                velface=(weightL*phi(left,VELX_INDX+sweepdir)
+                         +weightR*phi(right,VELX_INDX+sweepdir))/(weightL+weightR+TINYVAL);
+
+            }
+
+            fx(i,j,k,FLO_NVARS+sp) = mflo_species::advect_flags[sp]*
+            (half*(velface+fabs(velface))*phiL +
+             half*(velface-fabs(velface))*phiR);
         }
-        
-        fx(i,j,k,FLO_NVARS+sp) = mflo_species::advect_flags[sp]*
-        (half*(velface+fabs(velface))*phiL +
-         half*(velface-fabs(velface))*phiR);
     }
 
+    //species diffusion with or without nsflag
     for(int sp=0;sp<NUM_SPECIES;sp++)
     {
         fx(i,j,k,FLO_NVARS+sp) -= spec_dcoeff[sp]*(ur[NCVARS+sp]-ul[NCVARS+sp])/dx[sweepdir];

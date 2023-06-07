@@ -4,7 +4,7 @@
 #include <mflo_constants.H>
 #include <consprim_funcs.H>
 #include <thermo.H>
-
+#include <species.H>
 
 //==========================================================================================
 AMREX_GPU_DEVICE
@@ -95,7 +95,7 @@ void laxf_flux(Real ul[NCVARS+NUM_SPECIES],Real ur[NCVARS+NUM_SPECIES],Real fhal
 
     ahalf = std::max(sqrt(gamaL*presL/rhoL), sqrt(gamaR*presR/rhoR));
 
-
+    //FIXME: include species flux for consistency
     for(int i=0;i<NCVARS;i++)
     {
         fhalf[i] = half*(fl[i] + fr[i]) - half*(veln+ahalf)*(ur[i] - ul[i]);
@@ -185,7 +185,7 @@ AMREX_GPU_DEVICE
 void ausmp_up_flux(Real ul[NCVARS+NUM_SPECIES],Real ur[NCVARS+NUM_SPECIES],
         Real fhalf[NCVARS+NUM_SPECIES],Real n[AMREX_SPACEDIM],Real Minf=threetenth)
 {
-    Real fluxL[NCVARS],fluxR[NCVARS];
+    Real fluxL[NCVARS+NUM_SPECIES],fluxR[NCVARS+NUM_SPECIES];
     Real pl[NCVARS],pr[NCVARS];
     Real nx,ny,nz;
     Real vL,vR,ML,MR,HL,HR;
@@ -270,6 +270,12 @@ void ausmp_up_flux(Real ul[NCVARS+NUM_SPECIES],Real ur[NCVARS+NUM_SPECIES],
     fluxR[RHOV_IND]  = ur[RHOV_IND];
     fluxR[RHOW_IND]  = ur[RHOW_IND];
     fluxR[RHOE_IND]  = ur[RHOE_IND]+pr[PRES_IND];
+    
+    for(int sp=0;sp<NUM_SPECIES;sp++)
+    {
+        fluxL[NCVARS+sp]=ul[NCVARS+sp];
+        fluxR[NCVARS+sp]=ur[NCVARS+sp];
+    }
 
     mod_M_half=fabs(M_half);
 
@@ -279,7 +285,7 @@ void ausmp_up_flux(Real ul[NCVARS+NUM_SPECIES],Real ur[NCVARS+NUM_SPECIES],
         mod_M_half=(M_half*M_half+delta*delta)/(two*delta);
     }
 
-    for(int i=0;i<NCVARS;i++)
+    for(int i=0;i<(NCVARS+NUM_SPECIES);i++)
     {
         fhalf[i] = (half*M_half*(fluxL[i]+fluxR[i]) 
                 - half*mod_M_half*(fluxR[i]-fluxL[i]))*a_half;
@@ -346,7 +352,7 @@ void central_with_diss_flux(Real uim1[NCVARS+NUM_SPECIES],Real ui[NCVARS+NUM_SPE
 
     ahalf = std::max(sqrt(gamaL*presL/rhoL), sqrt(gamaR*presR/rhoR));
 
-    for(int i=0;i<NCVARS;i++)
+    for(int i=0;i<(NCVARS+NUM_SPECIES);i++)
     {
         fhalf[i] = twelveth*(7*fi[i]+7*fim1[i]-fim2[i]-fip1[i]);
         fhalf[i] -= twelveth*(3*ui[i]-3*uim1[i]-uip1[i]+ui[i])*(veln+ahalf)*dissfactor;
@@ -438,4 +444,54 @@ weno_reconstruct(Real uim2[NCVARS+NUM_SPECIES],
         (alpha[2] * vr[2] + alpha[1] * vr[1] + alpha[0] * vr[0]);
     }
 }
+//==========================================================================================
+AMREX_GPU_DEVICE
+AMREX_FORCE_INLINE
+void weno_flux(Real ulm2[NCVARS+NUM_SPECIES],
+               Real ulm1[NCVARS+NUM_SPECIES],
+               Real ul[NCVARS+NUM_SPECIES],
+               Real ur[NCVARS+NUM_SPECIES],
+               Real urp1[NCVARS+NUM_SPECIES],
+               Real urp2[NCVARS+NUM_SPECIES],
+               Real fhalf[NCVARS+NUM_SPECIES],
+               Real normal[AMREX_SPACEDIM])
+{
+    //inspired from Desai et al., 
+    //Direct numerical simulations of turbulent reacting flows with 
+    //shock waves and stiff chemistry using many-core/GPU accelerationR
+    //Computers and Fluids 215 (2021) 104787
+
+    Real fr[NCVARS+NUM_SPECIES]={zeroval};
+    Real frp1[NCVARS+NUM_SPECIES]={zeroval};
+    Real frp2[NCVARS+NUM_SPECIES]={zeroval};
+    Real fl[NCVARS+NUM_SPECIES]={zeroval};
+    Real flm1[NCVARS+NUM_SPECIES]={zeroval};
+    Real flm2[NCVARS+NUM_SPECIES]={zeroval};
+
+    Real fphalf[NCVARS+NUM_SPECIES]={zeroval};
+    Real fmhalf[NCVARS+NUM_SPECIES]={zeroval};
+    Real uphalf[NCVARS+NUM_SPECIES]={zeroval};
+    Real umhalf[NCVARS+NUM_SPECIES]={zeroval};
+
+    Real lambda_max;
+
+    lambda_max=get_max_eigenvalue(ul,ur,normal);
+    geteulerflux(ul,fl,normal);
+    geteulerflux(ulm1,flm1,normal);
+    geteulerflux(ulm2,flm2,normal);
+
+    geteulerflux(ur,fr,normal);
+    geteulerflux(urp1,frp1,normal);
+    geteulerflux(urp2,frp2,normal);
+
+    weno_reconstruct(flm2,flm1,fl,fr,frp1,frp2,fmhalf,fphalf);
+    weno_reconstruct(ulm2,ulm1,ul,ur,urp1,urp2,umhalf,uphalf);
+
+    for(int c=0;c<(NCVARS+NUM_SPECIES);c++)
+    {
+        fhalf[c+RHO_IND]=half*(fphalf[c]+lambda_max*uphalf[c]) +
+        half*(fmhalf[c]-lambda_max*umhalf[c]);
+    }
+}
+//==========================================================================================
 #endif

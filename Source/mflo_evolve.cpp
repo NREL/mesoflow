@@ -672,7 +672,7 @@ void mflo::compute_dsdt_flow(
             amrex::ParallelFor(
                     amrex::growHi(bx, 0, 1),
                     [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                    compute_flux_weno(
+                    compute_flux(
                     i, j, k, XDIR, sborder_arr, fluid_transport_arr, 
                     specdiff_arr, flux_arr[0], 
                     dx, hyperbolics_order,hyperbolics_dissfactor,nsflag,spec_in_solid);
@@ -681,7 +681,7 @@ void mflo::compute_dsdt_flow(
             amrex::ParallelFor(
                     amrex::growHi(bx, 1, 1),
                     [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                    compute_flux_weno(
+                    compute_flux(
                     i, j, k, YDIR, sborder_arr, fluid_transport_arr, 
                     specdiff_arr, flux_arr[1], 
                     dx, hyperbolics_order,hyperbolics_dissfactor,nsflag,spec_in_solid);
@@ -690,7 +690,7 @@ void mflo::compute_dsdt_flow(
             amrex::ParallelFor(
                     amrex::growHi(bx, 2, 1),
                     [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                    compute_flux_weno(
+                    compute_flux(
                     i, j, k, ZDIR, sborder_arr, fluid_transport_arr, 
                     specdiff_arr, flux_arr[2], 
                     dx, hyperbolics_order,hyperbolics_dissfactor,nsflag,spec_in_solid);
