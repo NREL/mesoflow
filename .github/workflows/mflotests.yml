@@ -9,7 +9,7 @@ jobs:
   cputest:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: true
     - name: System Dependencies
@@ -63,7 +63,7 @@ jobs:
   gputest:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: true
     - name: System Dependencies
@@ -87,6 +87,7 @@ jobs:
                 libcusparse-dev-11.2         \
                 libcublas-dev-11.2           \
                 libcurand-dev-11.2
+                sudo apt-get install mpich libmpich-dev
                 git clone https://github.com/AMReX-Codes/amrex
     - name: Build Regression
       working-directory: ./tests/Cartesian
