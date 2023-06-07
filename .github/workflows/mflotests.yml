@@ -84,6 +84,7 @@ jobs:
                 libcusparse-dev-11.2         \
                 libcublas-dev-11.2           \
                 libcurand-dev-11.2
+                git clone https://github.com/AMReX-Codes/amrex
     - name: Build Regression
       working-directory: ./tests/Cartesian
       run: |
