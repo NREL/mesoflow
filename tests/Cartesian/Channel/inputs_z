@@ -13,7 +13,7 @@ amr.v              = 1       # verbosity in Amr
 
 # REFINEMENT
 amr.max_level       = 0       # maximum level number allowed
-amr.blocking_factor = 2       # block factor in grid generation
+amr.blocking_factor = 4       # block factor in grid generation
 amr.max_grid_size   = 8
 
 amr.regrid_int      = 2       # how often to regrid
