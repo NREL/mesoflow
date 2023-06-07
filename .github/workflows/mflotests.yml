@@ -87,7 +87,7 @@ jobs:
                 libcusparse-dev-11.2         \
                 libcublas-dev-11.2           \
                 libcurand-dev-11.2
-                sudo apt-get install mpich libmpich-dev
+                #sudo apt-get install mpich libmpich-dev
                 git clone https://github.com/AMReX-Codes/amrex
     - name: Build Regression
       working-directory: ./tests/Cartesian
@@ -95,16 +95,16 @@ jobs:
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda-11.2/bin:${PATH}
         export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda-11.2/lib:${LD_LIBRARY_PATH}
         cd Channel
-        make -j 2 COMP=gnu USE_CUDA=TRUE
+        make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
         cd ..
         cd ShockTube_N2 
-        make -j 2 COMP=gnu USE_CUDA=TRUE
+        make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
         cd ..
         cd ShockTube_N2He
-        make -j 2 COMP=gnu USE_CUDA=TRUE
+        make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
         cd ..
         cd SpeciesEqTests 
-        make -j 2 COMP=gnu USE_CUDA=TRUE
+        make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
         cd ..
         cd TaylorGreen 
-        make -j 2 COMP=gnu USE_CUDA=TRUE
+        make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
