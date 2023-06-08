@@ -9,7 +9,7 @@ jobs:
   cputest:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: true
     - name: System Dependencies
@@ -61,40 +61,44 @@ jobs:
           cd TaylorGreen 
           mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs max_step=20
   gputest:
-    runs-on: ubuntu-latest
+    name: cudatest
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        cuda_ver: [11.4]
+        include:
+          - cuda_ver: "11.4"
+            cuda_pkg: 11-4
+            cuda_extra: libcurand-dev-11-4 cuda-cupti-dev-11-4
     steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: true
-    - name: System Dependencies
-      run: | 
-          export DEBIAN_FRONTEND=noninteractive
-          wget -q -O - https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub | sudo apt-key add -
+      - name: Clone
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Prepare CUDA environment
+        run: |
+          sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
           echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 /" | sudo tee /etc/apt/sources.list.d/cuda.list
-          echo "deb https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 /" | sudo tee /etc/apt/sources.list.d/nvidia-ml.list
-          sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys A4B469963BF863CC
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-          g++ gfortran libopenmpi-dev openmpi-bin cuda-command-line-tools-11-1 \
-          cuda-compiler-11-1 cuda-minimal-build-11-1 \
-          cuda-nvml-dev-11-1 cuda-nvtx-11-1 libcurand-dev-11-1 cuda-cupti-dev-11-1
+          sudo apt-get install -y --no-install-recommends ninja-build \
+              cuda-command-line-tools-${{matrix.cuda_pkg}} cuda-compiler-${{matrix.cuda_pkg}} cuda-minimal-build-${{matrix.cuda_pkg}} cuda-nvml-dev-${{matrix.cuda_pkg}} cuda-nvtx-${{matrix.cuda_pkg}} ${{matrix.cuda_extra}}
           git clone https://github.com/AMReX-Codes/amrex
-    - name: Build Regression
-      working-directory: ./tests/Cartesian
-      run: |
-        export PATH=/usr/local/nvidia/bin:/usr/local/cuda-11.1/bin:${PATH}
-        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda-11.1/lib:${LD_LIBRARY_PATH}
-        cd Channel
-        make -j 2 COMP=gnu USE_CUDA=TRUE
-        cd ..
-        cd ShockTube_N2 
-        make -j 2 COMP=gnu USE_CUDA=TRUE
-        cd ..
-        cd ShockTube_N2He
-        make -j 2 COMP=gnu USE_CUDA=TRUE
-        cd ..
-        cd SpeciesEqTests 
-        make -j 2 COMP=gnu USE_CUDA=TRUE
-        cd ..
-        cd TaylorGreen 
-        make -j 2 COMP=gnu USE_CUDA=TRUE
+      - name: Configure and build
+        working-directory: ./tests/Cartesian
+        run: |
+          export PATH=/usr/local/nvidia/bin:/usr/local/cuda-${{matrix.cuda_ver}}/bin:${PATH}
+          export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda-${{matrix.cuda_ver}}/lib:${LD_LIBRARY_PATH}
+          cd Channel
+          make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
+          cd ..
+          cd ShockTube_N2 
+          make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
+          cd ..
+          cd ShockTube_N2He
+          make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
+          cd ..
+          cd SpeciesEqTests 
+          make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
+          cd ..
+          cd TaylorGreen 
+          make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE

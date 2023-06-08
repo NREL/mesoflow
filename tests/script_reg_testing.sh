@@ -35,7 +35,7 @@ do
         echo ${case}
 	cd ${case}
         make -j ${MAKEFILE_OPTIONS} 
-        . ./runcase.sh "${MPI_RUN_COMMAND}" ${NPROCS}
+        . ./runcase.sh "${MPI_RUN_COMMAND}" ${NPROCS} "mflo.order_hyp=5"
         cd ${TOPDIR}
 done
 

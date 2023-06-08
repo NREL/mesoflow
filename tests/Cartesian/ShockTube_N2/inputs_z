@@ -6,14 +6,14 @@ geometry.is_periodic =  1  1  0
 geometry.coord_sys   =  0       # 0 => cart
 geometry.prob_lo     =  0.0    0.0    0.0 
 geometry.prob_hi     =  0.125  0.125  1.0
-amr.n_cell           =  2      2      64
+amr.n_cell           =  4      4      64
 
 # VERBOSITY
 amr.v              = 1       # verbosity in Amr
 
 # REFINEMENT
 amr.max_level       = 2       # maximum level number allowed
-amr.blocking_factor = 2       # block factor in grid generation
+amr.blocking_factor = 4       # block factor in grid generation
 amr.max_grid_size   = 8
 
 amr.regrid_int      = 2       # how often to regrid

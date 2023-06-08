@@ -45,7 +45,7 @@ void prim_to_cons(Real u[NCVARS+NUM_SPECIES], Real p[NCVARS])
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
-void geteulerflux(Real u[NCVARS+NUM_SPECIES], Real f[NCVARS], Real n[AMREX_SPACEDIM])
+void geteulerflux(Real u[NCVARS+NUM_SPECIES], Real f[NCVARS+NUM_SPECIES], Real n[AMREX_SPACEDIM])
 {
     Real nx, ny, nz;
     Real vx, vy, vz, rho, p;
@@ -73,6 +73,11 @@ void geteulerflux(Real u[NCVARS+NUM_SPECIES], Real f[NCVARS], Real n[AMREX_SPACE
     f[RHOW_IND] =
         rho * vz * vx * nx + rho * vz * vy * ny + (rho * vz * vz + p) * nz;
     f[RHOE_IND] = (u[RHOE_IND] + p) * (vx * nx + vy * ny + vz * nz);
+
+    for(int sp=0;sp<NUM_SPECIES;sp++)
+    {
+        f[NCVARS+sp]=u[NCVARS+sp]*(vx*nx + vy*ny + vz*nz);
+    }
 }
 
 #endif

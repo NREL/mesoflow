@@ -372,14 +372,94 @@ void mflo::timeStep(int lev, Real time, int iteration, bool only_flow)
 
 void mflo::Advance_coupled(int lev, Real time, Real dt_lev, int iteration, int ncycle,bool only_flow)
 {
-    constexpr int num_grow = 2;
+    constexpr int num_grow = 3;
     std::swap(phi_old[lev], phi_new[lev]); // old becomes new and new becomes
                                            // old
     t_old[lev] = t_new[lev];        // old time is now current time (time)
     t_new[lev] += dt_lev;           // new time is ahead
     MultiFab& S_new = phi_new[lev]; // this is the old value, beware!
     MultiFab& S_old = phi_old[lev]; // current value
+    
+    //RK3 TVD scheme
+    // State with ghost cells
+    MultiFab Sborder(grids[lev], dmap[lev], S_new.nComp(), num_grow);
+    // source term
+    MultiFab dsdt_flow(grids[lev], dmap[lev], S_new.nComp(), 0);
+    MultiFab dsdt_chemistry(grids[lev], dmap[lev], S_new.nComp(), 0);
+    
+    if (do_reflux)
+    {
+        if (flux_reg[lev + 1]) 
+        {
+            flux_reg[lev+1]->setVal(Real(0.0)); 
+        }
+    } 
 
+
+    // stage 1
+    // time is current time which is t_old
+    FillPatch(lev, time, Sborder, 0, Sborder.nComp());
+    // compute dsdt for 1/2 timestep
+    update_cutcell_data(lev, num_grow, Sborder, time, dt_lev);
+    compute_dsdt_flow(lev, num_grow, Sborder, dsdt_flow, time, dt_lev, sixth, true);
+    if(!only_flow)
+    {
+        compute_dsdt_chemistry(lev, num_grow, Sborder, dsdt_chemistry, time);
+    }
+    // S_new=S_old+dt*dsdt //sold is the current value
+    MultiFab::LinComb(S_new, one, Sborder, 0, dt_lev, dsdt_flow, 0, 0, S_new.nComp(), 0);
+
+    if(!only_flow)
+    {
+        MultiFab::Saxpy(S_new, dt_lev, dsdt_chemistry, 0, 0, S_new.nComp(), 0);
+    }
+
+    // stage 2
+    // time+dt_lev lets me pick S_new for sborder
+    FillPatch(lev, time + dt_lev, Sborder, 0, Sborder.nComp());
+    update_cutcell_data(lev,num_grow,Sborder,time,dt_lev);
+    compute_dsdt_flow(lev, num_grow, Sborder, dsdt_flow, time + dt_lev, dt_lev, sixth,true);
+    if(!only_flow)
+    {
+        compute_dsdt_chemistry(lev, num_grow, Sborder, dsdt_chemistry, time);
+    }
+    
+    // S_new=3/4 S_old+1/4 S_new + 1/4 dt*dsdt
+    // S_new = S_new + dt*dsdt
+    // S_new = S_new + 3*S_old
+    // S_new =S_new/4
+    MultiFab::Saxpy(S_new, dt_lev, dsdt_flow, 0, 0, S_new.nComp(), 0);
+    if(!only_flow)
+    {
+        MultiFab::Saxpy(S_new, dt_lev, dsdt_chemistry, 0, 0, S_new.nComp(), 0);
+    }
+    MultiFab::Saxpy(S_new, Real(3.0), S_old, 0, 0, S_new.nComp(), 0);
+    S_new.mult(fourth);
+    
+    // stage 3
+    // time+dt_lev lets me pick S_new for sborder
+    FillPatch(lev, time + dt_lev, Sborder, 0, Sborder.nComp());
+    update_cutcell_data(lev,num_grow,Sborder,time,dt_lev);
+    compute_dsdt_flow(lev, num_grow, Sborder, dsdt_flow, time + dt_lev, dt_lev, two3rd,true);
+    if(!only_flow)
+    {
+        compute_dsdt_chemistry(lev, num_grow, Sborder, dsdt_chemistry, time);
+    }
+    // S_new=1/3 S_old+2/3 S_new + 2/3 dt*dsdt
+    // S_new = S_new + dt*dsdt
+    // S_new = S_new*2
+    // S_new = S_new + S_old
+    // S_new =S_new/3
+    MultiFab::Saxpy(S_new, dt_lev, dsdt_flow, 0, 0, S_new.nComp(), 0);
+    if(!only_flow)
+    {
+        MultiFab::Saxpy(S_new, dt_lev, dsdt_chemistry, 0, 0, S_new.nComp(), 0);
+    }
+    S_new.mult(two);
+    MultiFab::Saxpy(S_new, Real(1.0), S_old, 0, 0, S_new.nComp(), 0);
+    S_new.mult(third);
+
+    /*old RK2 scheme
     // State with ghost cells
     MultiFab Sborder(grids[lev], dmap[lev], S_new.nComp(), num_grow);
     // source term
@@ -420,13 +500,13 @@ void mflo::Advance_coupled(int lev, Real time, Real dt_lev, int iteration, int n
     if(!only_flow)
     {
         MultiFab::Saxpy(S_new, dt_lev, dsdt_chemistry, 0, 0, S_new.nComp(), 0);
-    }
+    }*/
 }
 
 
 void mflo::Advance_chemistry(int lev, Real time, Real dt_lev)
 {
-    constexpr int num_grow = 2;
+    constexpr int num_grow = 3;
     std::swap(phi_old[lev], phi_new[lev]); // old becomes new and new becomes old
     MultiFab& S_new = phi_new[lev]; // this is the old value, beware!
     MultiFab& S_old = phi_old[lev]; // current value
@@ -493,7 +573,7 @@ void mflo::update_cutcell_data(
     const int num_grow,
     MultiFab& Sborder,
     Real time,
-    Real dt)
+    Real dtstep)
 {
     int ncomp = Sborder.nComp();
     auto prob_lo = geom[lev].ProbLoArray();
@@ -520,12 +600,13 @@ void mflo::compute_dsdt_flow(
         MultiFab& Sborder,
         MultiFab& dsdt,
         Real time,
-        Real dt,
+        Real tstep,
+        Real fluxfactor,
         bool reflux_this_stage)
 {
 
     const auto dx = geom[lev].CellSizeArray();
-    const Real* prob_lo = geom[lev].ProbLo();
+    const auto prob_lo = geom[lev].ProbLoArray();
     bool nsflag=(do_ns==1)?true:false;
 
     int ncomp = Sborder.nComp();
@@ -570,7 +651,6 @@ void mflo::compute_dsdt_flow(
 
             GpuArray<Array4<Real>, AMREX_SPACEDIM> flux_arr{AMREX_D_DECL(
                     flux[0].array(mfi), flux[1].array(mfi), flux[2].array(mfi))};
-            auto prob_lo = geom[lev].ProbLoArray();
 
             amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
             {
@@ -637,8 +717,8 @@ void mflo::compute_dsdt_flow(
                 const Real dA =
                     (i == 0) ? dx[1] * dx[2]
                     : ((i == 1) ? dx[0] * dx[2] : dx[0] * dx[1]);
-                const Real scale = -dt * dA;
-                flux_reg[lev + 1]->CrseInit(flux[i], i, 0, 0, ncomp, scale);
+                const Real scale = -tstep * dA * fluxfactor;
+                flux_reg[lev + 1]->CrseInit(flux[i], i, 0, 0, ncomp, scale, FluxRegister::ADD);
             }
         }
         if (flux_reg[lev]) 
@@ -649,7 +729,7 @@ void mflo::compute_dsdt_flow(
                 const Real dA =
                     (i == 0) ? dx[1] * dx[2]
                     : ((i == 1) ? dx[0] * dx[2] : dx[0] * dx[1]);
-                const Real scale = dt * dA;
+                const Real scale = tstep * dA * fluxfactor;
                 flux_reg[lev]->FineAdd(flux[i], i, 0, 0, ncomp, scale);
             }
         }
