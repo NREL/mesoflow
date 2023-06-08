@@ -61,50 +61,44 @@ jobs:
           cd TaylorGreen 
           mpirun -n 2 ./mesoflow3d.gnu.DEBUG.MPI.ex inputs max_step=20
   gputest:
-    runs-on: ubuntu-latest
+    name: cudatest
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        cuda_ver: [11.4]
+        include:
+          - cuda_ver: "11.4"
+            cuda_pkg: 11-4
+            cuda_extra: libcurand-dev-11-4 cuda-cupti-dev-11-4
     steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: true
-    - name: System Dependencies
-      run: |
-                curl -O https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb
-                sudo dpkg -i cuda-keyring_1.0-1_all.deb
-                sudo apt-get update 
-                sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
-                echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 /" \
-                | sudo tee /etc/apt/sources.list.d/cuda.list
-                sudo apt-get update
-                sudo apt-get install -y \
-                cuda-command-line-tools-11.2 \
-                cuda-compiler-11.2           \
-                cuda-cupti-dev-11.2          \
-                cuda-minimal-build-11.2      \
-                cuda-nvml-dev-11.2           \
-                cuda-nvtx-11.2               \
-                libcurand-dev-11.2           \
-                libcusolver-dev-11.2         \
-                libcusparse-dev-11.2         \
-                libcublas-dev-11.2           \
-                libcurand-dev-11.2
-                #sudo apt-get install mpich libmpich-dev
-                git clone https://github.com/AMReX-Codes/amrex
-    - name: Build Regression
-      working-directory: ./tests/Cartesian
-      run: |
-        export PATH=/usr/local/nvidia/bin:/usr/local/cuda-11.2/bin:${PATH}
-        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda-11.2/lib:${LD_LIBRARY_PATH}
-        cd Channel
-        make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
-        cd ..
-        cd ShockTube_N2 
-        make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
-        cd ..
-        cd ShockTube_N2He
-        make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
-        cd ..
-        cd SpeciesEqTests 
-        make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
-        cd ..
-        cd TaylorGreen 
-        make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
+      - name: Clone
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Prepare CUDA environment
+        run: |
+          sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
+          echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 /" | sudo tee /etc/apt/sources.list.d/cuda.list
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build \
+              cuda-command-line-tools-${{matrix.cuda_pkg}} cuda-compiler-${{matrix.cuda_pkg}} cuda-minimal-build-${{matrix.cuda_pkg}} cuda-nvml-dev-${{matrix.cuda_pkg}} cuda-nvtx-${{matrix.cuda_pkg}} ${{matrix.cuda_extra}}
+          git clone https://github.com/AMReX-Codes/amrex
+      - name: Configure and build
+        working-directory: ./tests/Cartesian
+        run: |
+          export PATH=/usr/local/nvidia/bin:/usr/local/cuda-${{matrix.cuda_ver}}/bin:${PATH}
+          export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda-${{matrix.cuda_ver}}/lib:${LD_LIBRARY_PATH}
+          cd Channel
+          make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
+          cd ..
+          cd ShockTube_N2 
+          make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
+          cd ..
+          cd ShockTube_N2He
+          make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
+          cd ..
+          cd SpeciesEqTests 
+          make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
+          cd ..
+          cd TaylorGreen 
+          make -j 2 COMP=gnu USE_CUDA=TRUE USE_MPI=FALSE
