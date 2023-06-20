@@ -1,0 +1,4 @@
+species_name,formula,advect_flag,molwt,gamma_spec
+H2,H2,1,0.002,1.4
+H2ADS1,H2ADS1,0,0.044,NaN
+S1,S1,0,0,NaN
