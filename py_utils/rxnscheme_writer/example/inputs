@@ -1,0 +1,80 @@
+# ------------------  INPUTS TO MAIN PROGRAM  -------------------
+max_step = 200000000
+stop_time = 200000000
+
+# PROBLEM SIZE & GEOMETRY
+geometry.is_periodic =  0  0  0
+geometry.coord_sys   =  0       # 0 => cart
+geometry.prob_lo     =  -0.001  -0.0005   -0.0005
+geometry.prob_hi     =   0.001    0.0005   0.0005
+
+amr.n_cell           =   256    128     128
+
+# VERBOSITY
+amr.v              = 1       # verbosity in Amr
+
+# REFINEMENT
+amr.max_level       = 2       # maximum level number allowed
+amr.blocking_factor = 4      # block factor in grid generation
+amr.max_grid_size   = 32
+
+amr.regrid_int      = 100       # how often to regrid
+
+# TIME STEP CONTROL
+cflo.cfl            = 0.8     # cfl number for hyperbolic system
+                             # In this test problem, the velocity is
+			     # time-dependent.  We could use 0.9 in
+			     # the 3D test, but need to use 0.7 in 2D
+			     # to satisfy CFL condition.
+cflo.do_reflux = 1
+
+#periodic 0
+#extdir 3
+#foextrap 2 
+#wall 6
+cflo.lo_bc = 3 2 2
+cflo.hi_bc = 2 2 2
+
+# Tagging
+cflo.tagged_vars = volfrac velx vely
+cflo.volfrac_refine = 1e20
+cflo.volfrac_refinegrad = 0.1
+
+cflo.velx_refine = 1e20
+cflo.velx_refinegrad = 1e20
+
+cflo.vely_refine = 1e20
+cflo.vely_refinegrad = 1e20
+
+
+
+# PLOTFILES
+amr.plot_file  = plt    # root name of plot file
+amr.plot_int   = 200000     # number of timesteps between plot files
+
+# CHECKPOINT
+amr.chk_file = chk      # root name of checkpoint file
+amr.chk_int  = 200000       # number of timesteps between checkpoint files
+
+#problem.free_stream_vel=0.0093172
+problem.free_stream_vel=1 # 1 m/s
+problem.free_stream_pres=100000.0
+problem.free_stream_primaryvapor=10
+#problem.free_stream_primaryvapor=0.0
+problem.free_stream_temp=700
+
+cflo.split_chemistry=0
+#cflo.steady_flow_time=0.008
+cflo.steady_flow_time=4e-3
+cflo.react_final_time=200000000.0
+cflo.react_increment_time=0.1
+cflo.react_time_step=1e-6
+cflo.flow_coupling_time=1e-3
+cflo.using_bg_inertgas=1
+cflo.solve_navier_stokes=0
+problem.mrc_threshold=0.5
+problem.mrc_dx=2.0e-6
+problem.mrc_lo_x=-125e-6
+problem.mrc_lo_y=-125e-6
+problem.chemistry_on = 1
+problem.mrc_lo_z=-125e-6
