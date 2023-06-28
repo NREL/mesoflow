@@ -35,3 +35,9 @@ rxnscheme_writer.write_transport(species_df, soldiff, fludiff, project_dir)
 
 # write species.H
 rxnscheme_writer.write_speciesH(species_df, reactions_df, project_dir)
+
+# write thermo.H
+rxnscheme_writer.write_thermo(species_df, project_dir)
+
+# write userfuncs.cpp
+rxnscheme_writer.write_userfuncs(species_df, project_dir)

@@ -1,3 +1,4 @@
+
 #include<userfuncs.H>
 #include <AMReX_ParmParse.H>
 
@@ -14,7 +15,7 @@ namespace cflo_user_funcs
     AMREX_GPU_DEVICE_MANAGED Real dx_mrc_x=1e-6;
     AMREX_GPU_DEVICE_MANAGED Real dx_mrc_y=1e-6;
     AMREX_GPU_DEVICE_MANAGED Real dx_mrc_z=1e-6;
-    AMREX_GPU_DEVICE_MANAGED Real mrc_threshold=0.5;
+    AMREX_GPU_DEVICE_MANAGED Real mrc_threshold=1800.0;
 
     AMREX_GPU_DEVICE_MANAGED Real fs_vel=fourth;
     AMREX_GPU_DEVICE_MANAGED Real fs_p=2*P_NTP;
@@ -27,8 +28,6 @@ namespace cflo_user_funcs
 
     void initialize_problem()
     {
-        Print()<<"Initializing problem\n";
-        
         ParmParse pp("problem");
         pp.query("free_stream_vel",fs_vel); 
         pp.query("free_stream_pres",fs_p);
@@ -49,8 +48,6 @@ namespace cflo_user_funcs
         }
         fs_spec[H2_ID]=fs_H2;
 
-        //Print()<<"fs_pv:"<<fs_pv<<"\n";
-        //
         ParmParse pp1("amr");
         std::string restfile="";
         pp1.query("restart",restfile);
