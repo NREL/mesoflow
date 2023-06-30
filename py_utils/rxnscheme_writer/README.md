@@ -9,6 +9,7 @@ This tool is used to convert tabulated reaction mechanisms to mesoflow simulatio
 - Two .csv files are required:
     - `reactions.csv` containing a matrix of reactions in your mechanism with stoichiometric coefficients. The convention assumes negative coefficients for reactants and positive for products
     - `species.csv` containing information about each species in the mechanism. All units are assumed SI by convention. For solid species, advect_flag should be set to 0 and gamma (heat capacity ratio) should be set to NaN. Gas-phase species should have advect_flag set to 1 and gamma can be user-specified.
+  
     **Important requirements for species.csv:**
     - Gas species should be defined first
     - The first species is assumed to be the primary vapor
