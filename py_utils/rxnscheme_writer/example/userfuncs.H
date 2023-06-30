@@ -9,11 +9,11 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Box.H>
 #include <globalDefines.H>
-#include <cflo_constants.H>
+#include <mflo_constants.H>
 #include <thermo.H>
 
 using namespace amrex;
-namespace cflo_user_funcs
+namespace mflo_user_funcs
 {
     extern AMREX_GPU_DEVICE_MANAGED int nx_mrc,ny_mrc,nz_mrc;
     extern Gpu::ManagedVector<Real>* mrcdatavec; 
@@ -54,9 +54,9 @@ namespace cflo_user_funcs
                 GpuArray<Real, AMREX_SPACEDIM> dx,
                 const Real time)
         {
-            for(int nc=0;nc<CFLO_NVARS;nc++)
+            for(int nc=0;nc<FLO_NVARS;nc++)
             {
-                source(i,j,k,nc)=zero;   
+                source(i,j,k,nc)=zeroval;   
             }
         }
 }

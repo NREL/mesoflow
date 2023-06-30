@@ -7,7 +7,7 @@
 #include <species.H>
 
 using namespace amrex;
-namespace cflo_chem_transport
+namespace mflo_chem_transport
 {
     AMREX_GPU_DEVICE AMREX_INLINE
         void compute_spec_dcoeff(int i, int j, int k,
@@ -25,8 +25,8 @@ namespace cflo_chem_transport
             {
                 dcoeff(i,j,k,sp) = (one-vfrac)*solid_dif+vfrac*fluid_dif;
             }
-            dcoeff(i,j,k,H2ADS1_ID)=zero;
-            dcoeff(i,j,k,S1_ID)=zero;
+            dcoeff(i,j,k,H2ADS1_ID)=zeroval;
+            dcoeff(i,j,k,S1_ID)=zeroval;
        }
 }
 #endif

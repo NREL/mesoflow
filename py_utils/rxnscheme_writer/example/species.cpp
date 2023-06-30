@@ -1,6 +1,6 @@
 #include<species.H>
 
-namespace cflo_species
+namespace mflo_species
 {
     amrex::Vector<std::string> specnames(NUM_SPECIES);
     AMREX_GPU_DEVICE_MANAGED amrex::Real molwts[NUM_SPECIES]={one};
@@ -31,13 +31,13 @@ namespace cflo_species
         {
             advect_flags[sp]=one;
         }
-        advect_flags[H2ADS1_ID] = zero;
-        advect_flags[S1_ID] = zero;
+        advect_flags[H2ADS1_ID] = zeroval;
+        advect_flags[S1_ID] = zeroval;
         for(int i=0;i<NUM_REACTIONS;i++)
         {
             for(int j=0;j<NUM_SPECIES;j++)
             {
-                rxnarray[i][j]=zero;
+                rxnarray[i][j]=zeroval;
             }
         }
         //Reaction0

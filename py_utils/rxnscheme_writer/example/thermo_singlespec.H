@@ -9,7 +9,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Box.H>
 #include <globalDefines.H>
-#include <cflo_constants.H>
+#include <mflo_constants.H>
 #include <species.H>
 
 using namespace amrex;
@@ -18,7 +18,7 @@ namespace thermo
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
         Real get_t_given_rpc(Real rho,Real pres,Real spec[NUM_SPECIES])
         {
-            Real R_bg=RU/cflo_species::molwts[BG_ID];
+            Real R_bg=RU/mflo_species::molwts[BG_ID];
             return(pres/R_bg/rho);
         }
 

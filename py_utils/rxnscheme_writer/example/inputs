@@ -21,30 +21,30 @@ amr.max_grid_size   = 32
 amr.regrid_int      = 100       # how often to regrid
 
 # TIME STEP CONTROL
-cflo.cfl            = 0.8     # cfl number for hyperbolic system
+mflo.cfl            = 0.8     # cfl number for hyperbolic system
                              # In this test problem, the velocity is
 			     # time-dependent.  We could use 0.9 in
 			     # the 3D test, but need to use 0.7 in 2D
 			     # to satisfy CFL condition.
-cflo.do_reflux = 1
+mflo.do_reflux = 1
 
 #periodic 0
 #extdir 3
 #foextrap 2 
 #wall 6
-cflo.lo_bc = 3 2 2
-cflo.hi_bc = 2 2 2
+mflo.lo_bc = 3 2 2
+mflo.hi_bc = 2 2 2
 
 # Tagging
-cflo.tagged_vars = volfrac velx vely
-cflo.volfrac_refine = 1e20
-cflo.volfrac_refinegrad = 0.1
+mflo.tagged_vars = volfrac velx vely
+mflo.volfrac_refine = 1e20
+mflo.volfrac_refinegrad = 0.1
 
-cflo.velx_refine = 1e20
-cflo.velx_refinegrad = 1e20
+mflo.velx_refine = 1e20
+mflo.velx_refinegrad = 1e20
 
-cflo.vely_refine = 1e20
-cflo.vely_refinegrad = 1e20
+mflo.vely_refine = 1e20
+mflo.vely_refinegrad = 1e20
 
 
 
@@ -63,15 +63,15 @@ problem.free_stream_primaryvapor=10
 #problem.free_stream_primaryvapor=0.0
 problem.free_stream_temp=700
 
-cflo.split_chemistry=0
-#cflo.steady_flow_time=0.008
-cflo.steady_flow_time=4e-3
-cflo.react_final_time=200000000.0
-cflo.react_increment_time=0.1
-cflo.react_time_step=1e-6
-cflo.flow_coupling_time=1e-3
-cflo.using_bg_inertgas=1
-cflo.solve_navier_stokes=0
+mflo.split_chemistry=0
+#mflo.steady_flow_time=0.008
+mflo.steady_flow_time=4e-3
+mflo.react_final_time=200000000.0
+mflo.react_increment_time=0.1
+mflo.react_time_step=1e-6
+mflo.flow_coupling_time=1e-3
+mflo.using_bg_inertgas=1
+mflo.solve_navier_stokes=0
 problem.mrc_threshold=0.5
 problem.mrc_dx=2.0e-6
 problem.mrc_lo_x=-125e-6

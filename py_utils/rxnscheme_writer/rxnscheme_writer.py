@@ -1,5 +1,5 @@
 '''
-Reads chemical species, reactions, and rates from csv and produces species.cpp  and transport.H files
+Reads chemical species, reactions, and rates from csv and produces mesoflow files
 Written by Meagan Crowley, NREL 2023
 '''
 import os
@@ -20,7 +20,7 @@ def write_speciescpp(species_df, path):
     with open(f'{path}/species.cpp', 'w+') as f:
         f.write('''#include<species.H>
 
-namespace cflo_species
+namespace mflo_species
 {
     amrex::Vector<std::string> specnames(NUM_SPECIES);
     AMREX_GPU_DEVICE_MANAGED amrex::Real molwts[NUM_SPECIES]={one};
@@ -74,7 +74,7 @@ namespace cflo_species
             formula = species_df['formula'].iloc[i]
             advect_flag = species_df['advect_flag'].iloc[i]
             if advect_flag == 0:
-                f.write(f'\n        advect_flags[{formula}_ID] = zero;')
+                f.write(f'\n        advect_flags[{formula}_ID] = zeroval;')
         f.write('\n')
         f.close()
 
@@ -90,7 +90,7 @@ def write_rxn_arrays(reactions_df, path):
         {
             for(int j=0;j<NUM_SPECIES;j++)
             {
-                rxnarray[i][j]=zero;
+                rxnarray[i][j]=zeroval;
             }
         }\n''')
         f.close()
@@ -146,7 +146,7 @@ def write_transport(species_df, soldiff, fludiff, path):
 #include <species.H>
 
 using namespace amrex;
-namespace cflo_chem_transport
+namespace mflo_chem_transport
 {
     AMREX_GPU_DEVICE AMREX_INLINE
         void compute_spec_dcoeff(int i, int j, int k,
@@ -170,7 +170,7 @@ namespace cflo_chem_transport
             formula = species_df['formula'].iloc[i]
             advect_flag = species_df['advect_flag'].iloc[i]
             if advect_flag == 0:
-                f.write(f'\n            dcoeff(i,j,k,{formula}_ID)=zero;')
+                f.write(f'\n            dcoeff(i,j,k,{formula}_ID)=zeroval;')
         f.write('\n')
     f.close()
 
@@ -204,7 +204,7 @@ def write_speciesH(species_df, reactions_df, path):
 #include <AMReX_Geometry.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Box.H>
-#include <cflo_constants.H>''')
+#include <mflo_constants.H>''')
         f.write(f"\n\n#define NUM_SPECIES {num_species}\n")
         f.close()
 
@@ -221,7 +221,7 @@ def write_speciesH(species_df, reactions_df, path):
     # write footer to species.H
     with open(f'{path}/species.H', 'a+') as f:
         f.write('''
-namespace cflo_species
+namespace mflo_species
 {
     extern amrex::Vector<std::string> specnames;
     extern AMREX_GPU_DEVICE_MANAGED  amrex::Real molwts[NUM_SPECIES];
@@ -253,20 +253,20 @@ def write_thermo(species_df, path):
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Box.H>
 #include <globalDefines.H>
-#include <cflo_constants.H>
+#include <mflo_constants.H>
 #include <species.H>
 
 using namespace amrex;
-namespace cflo_thermo
+namespace mflo_thermo
 {
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-        Real get_r_from_c(Real spec[NUM_SPECIES],Real bgasconc=zero)
+        Real get_r_from_c(Real spec[NUM_SPECIES],Real bgasconc=zeroval)
         {
 
-            Real rho = zero;     
+            Real rho = zeroval;     
             for(int sp=FIRST_SPEC;sp<NUM_GAS_SPECIES;sp++)
             {
-                rho += spec[sp]*cflo_species::molwts[sp];   
+                rho += spec[sp]*mflo_species::molwts[sp];   
             }
             rho += bgasconc*BG_GAS_MWT;
 
@@ -278,7 +278,7 @@ namespace cflo_thermo
             Real sum_ciMi=0.0;
             for(int sp=FIRST_SPEC;sp<NUM_GAS_SPECIES;sp++)
             {
-                sum_ciMi += spec[sp]*cflo_species::molwts[sp];   
+                sum_ciMi += spec[sp]*mflo_species::molwts[sp];   
             }
             Real c_bg_gas = (rho-sum_ciMi)/BG_GAS_MWT;
             return(c_bg_gas);
@@ -286,12 +286,12 @@ namespace cflo_thermo
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
         Real get_r_from_tpc(Real temp,Real pres,Real spec[NUM_SPECIES])
         {
-            Real sum_ci   = zero;
-            Real sum_ciMi = zero;
+            Real sum_ci   = zeroval;
+            Real sum_ciMi = zeroval;
             for(int sp=FIRST_SPEC;sp<NUM_GAS_SPECIES;sp++)
             {
                 sum_ci   += spec[sp];   
-                sum_ciMi += spec[sp]*cflo_species::molwts[sp];   
+                sum_ciMi += spec[sp]*mflo_species::molwts[sp];   
             }
 
             Real c_total = pres/RU/temp;
@@ -303,12 +303,12 @@ namespace cflo_thermo
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
         Real get_t_from_rpc(Real rho,Real pres,Real spec[NUM_SPECIES])
         {
-            Real sum_ci   = zero;
-            Real sum_ciMi = zero;
+            Real sum_ci   = zeroval;
+            Real sum_ciMi = zeroval;
             for(int sp=FIRST_SPEC;sp<NUM_GAS_SPECIES;sp++)
             {
                 sum_ci   += spec[sp];   
-                sum_ciMi += spec[sp]*cflo_species::molwts[sp];   
+                sum_ciMi += spec[sp]*mflo_species::molwts[sp];   
             }
 
             Real c_bg_gas = (rho-sum_ciMi)/BG_GAS_MWT;
@@ -325,23 +325,23 @@ namespace cflo_thermo
             //these are only present in solid
 
             //include background gas also
-            Real cv_spec[NUM_GAS_SPECIES+1]={zero};
+            Real cv_spec[NUM_GAS_SPECIES+1]={zeroval};
             Real T;
 
             //find background gas concentration
-            Real sum_ciMi = zero;
+            Real sum_ciMi = zeroval;
             for(int sp=FIRST_SPEC;sp<NUM_GAS_SPECIES;sp++)
             {
-                sum_ciMi += spec[sp]*cflo_species::molwts[sp];   
+                sum_ciMi += spec[sp]*mflo_species::molwts[sp];   
             }
             Real c_bg_gas = (rho-sum_ciMi)/BG_GAS_MWT;
 
             for(int sp=FIRST_SPEC;sp<(NUM_GAS_SPECIES+1);sp++)
             {
-                cv_spec[sp]=RU/(cflo_species::gamma_spec[sp]-one); //J/K/mol
+                cv_spec[sp]=RU/(mflo_species::gamma_spec[sp]-one); //J/K/mol
             }
 
-            Real cv_times_spec=zero;
+            Real cv_times_spec=zeroval;
             for(int sp=FIRST_SPEC;sp<NUM_GAS_SPECIES;sp++)
             {
                 cv_times_spec += cv_spec[sp]*spec[sp]; //J/K/m3
@@ -350,7 +350,7 @@ namespace cflo_thermo
 
 
             T=rhoe/cv_times_spec;
-            Real p=zero;
+            Real p=zeroval;
             for(int sp=FIRST_SPEC;sp<NUM_GAS_SPECIES;sp++)
             {
                 p += spec[sp]*RU*T;   
@@ -364,18 +364,18 @@ namespace cflo_thermo
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
         Real get_gama_from_rpc(Real rho,Real pres,Real spec[NUM_SPECIES])
         {
-            Real x_i[NUM_GAS_SPECIES+1]={zero};  //mole frac
+            Real x_i[NUM_GAS_SPECIES+1]={zeroval};  //mole frac
 
             //find background gas concentration
-            Real sum_ciMi = zero;
+            Real sum_ciMi = zeroval;
             for(int sp=%s_ID;sp<NUM_GAS_SPECIES;sp++)
             {
-                sum_ciMi += spec[sp]*cflo_species::molwts[sp];   
+                sum_ciMi += spec[sp]*mflo_species::molwts[sp];   
             }
             Real c_bg_gas = (rho-sum_ciMi)/BG_GAS_MWT;
 
 
-            Real sum_ci=zero;
+            Real sum_ci=zeroval;
             for(int sp=FIRST_SPEC;sp<NUM_GAS_SPECIES;sp++)
             {
                 sum_ci += spec[sp];
@@ -388,10 +388,10 @@ namespace cflo_thermo
             }
             x_i[NUM_GAS_SPECIES] = c_bg_gas/sum_ci;
 
-            Real term2=zero;
+            Real term2=zeroval;
             for(int sp=FIRST_SPEC;sp<(NUM_GAS_SPECIES+1);sp++)
             {
-                term2 += x_i[sp]/(cflo_species::gamma_spec[sp]-one);
+                term2 += x_i[sp]/(mflo_species::gamma_spec[sp]-one);
             }
 
             Real gama_mix=one+pow(term2,-one);
@@ -403,26 +403,26 @@ namespace cflo_thermo
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
         Real get_e_from_rpc(Real rho,Real pres,Real spec[NUM_SPECIES])
         {
-            Real cv_spec[NUM_GAS_SPECIES+1]={zero};
+            Real cv_spec[NUM_GAS_SPECIES+1]={zeroval};
             Real temp;
 
             //find background gas concentration
-            Real sum_ciMi = zero;
+            Real sum_ciMi = zeroval;
             for(int sp=FIRST_SPEC;sp<NUM_GAS_SPECIES;sp++)
             {
-                sum_ciMi += spec[sp]*cflo_species::molwts[sp];   
+                sum_ciMi += spec[sp]*mflo_species::molwts[sp];   
             }
             Real c_bg_gas = (rho-sum_ciMi)/BG_GAS_MWT;
 
             for(int sp=FIRST_SPEC;sp<NUM_GAS_SPECIES;sp++)
             {
-                cv_spec[sp] = RU/(cflo_species::gamma_spec[sp]-one); //J/K/mol
+                cv_spec[sp] = RU/(mflo_species::gamma_spec[sp]-one); //J/K/mol
             }
-            cv_spec[NUM_GAS_SPECIES] = RU/(cflo_species::gamma_spec[NUM_GAS_SPECIES]-one); 
+            cv_spec[NUM_GAS_SPECIES] = RU/(mflo_species::gamma_spec[NUM_GAS_SPECIES]-one); 
 
             temp=get_t_from_rpc(rho,pres,spec);
 
-            Real sum_cvi_ci=zero;
+            Real sum_cvi_ci=zeroval;
             for(int sp=FIRST_SPEC;sp<NUM_GAS_SPECIES;sp++)
             {
                 sum_cvi_ci += cv_spec[sp]*spec[sp];
@@ -449,7 +449,7 @@ def write_userfuncs(species_df, path):
 #include<userfuncs.H>
 #include <AMReX_ParmParse.H>
 
-namespace cflo_user_funcs
+namespace mflo_user_funcs
 {
     AMREX_GPU_DEVICE_MANAGED int nx_mrc=0;
     AMREX_GPU_DEVICE_MANAGED int ny_mrc=0;
@@ -469,7 +469,7 @@ namespace cflo_user_funcs
     AMREX_GPU_DEVICE_MANAGED Real fs_rho=2*one;
     AMREX_GPU_DEVICE_MANAGED Real fs_temp=800.0;
     AMREX_GPU_DEVICE_MANAGED Real fs_%s=1.396;
-    AMREX_GPU_DEVICE_MANAGED Real fs_spec[NUM_SPECIES]={zero};
+    AMREX_GPU_DEVICE_MANAGED Real fs_spec[NUM_SPECIES]={zeroval};
     AMREX_GPU_DEVICE_MANAGED Real catalyst_sites=10;
     AMREX_GPU_DEVICE_MANAGED int chemistry_on=0;
 
@@ -491,7 +491,7 @@ namespace cflo_user_funcs
         
         for(int sp=0;sp<NUM_SPECIES;sp++)
         {
-            fs_spec[sp]=zero;
+            fs_spec[sp]=zeroval;
         }
         fs_spec[%s_ID]=fs_%s;
 
@@ -515,7 +515,7 @@ namespace cflo_user_funcs
             infile.close();
             mrcdata=mrcdatavec->dataPtr();
         }
-        fs_rho = cflo_thermo::get_r_from_tpc(fs_temp,fs_p,fs_spec);
+        fs_rho = mflo_thermo::get_r_from_tpc(fs_temp,fs_p,fs_spec);
     }
 }
 '''%(first_spec, first_spec, first_spec, first_spec))

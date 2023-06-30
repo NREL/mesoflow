@@ -8,7 +8,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Box.H>
-#include <cflo_constants.H>
+#include <mflo_constants.H>
 
 #define NUM_SPECIES 3
 #define H2_ID 0
@@ -23,7 +23,7 @@
 
 #define NUM_REACTIONS 2
 
-namespace cflo_species
+namespace mflo_species
 {
     extern amrex::Vector<std::string> specnames;
     extern AMREX_GPU_DEVICE_MANAGED  amrex::Real molwts[NUM_SPECIES];

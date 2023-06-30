@@ -1,4 +1,5 @@
 AMREX_HOME ?= ../../../../..
+MFLO_HOME = /scratch/mcrowley2/mesoflow
 
 PRECISION  = DOUBLE
 PROFILE    = FALSE
@@ -20,4 +21,4 @@ USE_IMM_BOUNDARY=TRUE
 Bpack   := ./Make.package 
 Blocs   := . 
 
-include ${CFLO_HOME}/test/Make.cflo
+include ${MFLO_HOME}/tests/Make.mflo

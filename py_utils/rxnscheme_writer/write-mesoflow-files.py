@@ -3,10 +3,11 @@
 #  Requires two csv files (see example directory for expected format):
 #   - `species.csv` containing species names and properties
 #   - `reactions.csv` containing reaction definitions and stoichiometry
-#  Writes three mesoflow files:
-#   - species.cpp containing species definitions and reactions
+#  Writes the following mesoflow files:
+#   - species.cpp & species.H containing species definitions and reactions
 #   - transport.H containing transport properties
 #   - thermo.H  containing thermodynamic properties
+#   - userfuncs.cpp containing user-defined variables
 #
 #   Written by Meagan Crowley, NREL 2023
 #########################################################################

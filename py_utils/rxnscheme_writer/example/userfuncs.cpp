@@ -2,7 +2,7 @@
 #include<userfuncs.H>
 #include <AMReX_ParmParse.H>
 
-namespace cflo_user_funcs
+namespace mflo_user_funcs
 {
     AMREX_GPU_DEVICE_MANAGED int nx_mrc=0;
     AMREX_GPU_DEVICE_MANAGED int ny_mrc=0;
@@ -22,7 +22,7 @@ namespace cflo_user_funcs
     AMREX_GPU_DEVICE_MANAGED Real fs_rho=2*one;
     AMREX_GPU_DEVICE_MANAGED Real fs_temp=800.0;
     AMREX_GPU_DEVICE_MANAGED Real fs_H2=1.396;
-    AMREX_GPU_DEVICE_MANAGED Real fs_spec[NUM_SPECIES]={zero};
+    AMREX_GPU_DEVICE_MANAGED Real fs_spec[NUM_SPECIES]={zeroval};
     AMREX_GPU_DEVICE_MANAGED Real catalyst_sites=10;
     AMREX_GPU_DEVICE_MANAGED int chemistry_on=0;
 
@@ -44,7 +44,7 @@ namespace cflo_user_funcs
         
         for(int sp=0;sp<NUM_SPECIES;sp++)
         {
-            fs_spec[sp]=zero;
+            fs_spec[sp]=zeroval;
         }
         fs_spec[H2_ID]=fs_H2;
 
@@ -68,6 +68,6 @@ namespace cflo_user_funcs
             infile.close();
             mrcdata=mrcdatavec->dataPtr();
         }
-        fs_rho = cflo_thermo::get_r_from_tpc(fs_temp,fs_p,fs_spec);
+        fs_rho = mflo_thermo::get_r_from_tpc(fs_temp,fs_p,fs_spec);
     }
 }
