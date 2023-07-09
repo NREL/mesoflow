@@ -84,6 +84,14 @@ void mflo::EvolveAMR(Real final_time, bool only_flow)
         {
             update_primitive_vars(l);
         }
+        
+        if(clip_species)
+        {
+            for (int l = 0; l <= finest_level; l++) 
+            {
+                clip_neg_speciesconc(l);
+            }
+        }
 
         //print residuals
         if(track_residual_norms == 1)
@@ -101,8 +109,8 @@ void mflo::EvolveAMR(Real final_time, bool only_flow)
         cur_time += dt[0];
 
         amrex::Print() << "Coarse STEP " << step + 1 << " ends."
-            << " TIME = " << cur_time << " DT = " << dt[0]
-            << std::endl;
+        << " TIME = " << cur_time << " DT = " << dt[0]
+        << std::endl;
 
         // sync up time
         for (lev = 0; lev <= finest_level; ++lev) 
@@ -135,10 +143,17 @@ void mflo::compute_residual_norms()
     MultiFab& S_new = phi_new[lev]; 
     MultiFab& S_old = phi_old[lev]; 
     MultiFab difference(grids[lev], dmap[lev], S_new.nComp(), 0);
+
     MultiFab::LinComb(
         difference, 1.0/dt[lev], S_new, 0, 
         -1.0/dt[lev], S_old, 0, 0, S_new.nComp(), 0);
-    
+
+    //scale flow variables by vfrac
+    for(int var=RHO_INDX;var<VFRAC_INDX;var++)
+    {
+        MultiFab::Multiply(difference,S_old,VFRAC_INDX,var,1,0);
+    }
+
     for(int c=0;c<residual_norms.size();c++)
     {
         residual_norms[c]=difference.norm2(c);
@@ -160,8 +175,8 @@ void mflo::update_vars_after_chemsolve(int lev)
             const Box& bx = mfi.tilebox();
             Array4<Real> snew_arr = S_new.array(mfi);
 
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
-            {
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+
                 if(snew_arr(i,j,k,VFRAC_INDX) >= one)
                 {
                     Real u[NCVARS+NUM_SPECIES], p[NCVARS],spec[NUM_SPECIES];
@@ -199,16 +214,16 @@ void mflo::update_vars_after_chemsolve(int lev)
                         snew_arr(i, j, k, c + DENS_INDX) = p[c + DENS_IND];
                     }
                     snew_arr(i, j, k, TEMP_INDX)=mflo_thermo::get_t_from_rpc(snew_arr(i, j, k, DENS_INDX),
-                        snew_arr(i, j, k, PRES_INDX),u+NCVARS);
-               }
-           });
-          
-           Real minpressure=S_new[mfi].min<RunOn::Device>(PRES_INDX);
-           if(minpressure < 0 and nsflag)
-           {
-               Print() << "Minimum pressure in domain:" << minpressure << "\n";
-               amrex::Abort("Pressure has gone negative"); 
-           }
+                                                                             snew_arr(i, j, k, PRES_INDX),u+NCVARS);
+                }
+            });
+
+            Real minpressure=S_new[mfi].min<RunOn::Device>(PRES_INDX);
+            if(minpressure < 0 and nsflag)
+            {
+                Print() << "Minimum pressure in domain:" << minpressure << "\n";
+                amrex::Abort("Pressure has gone negative"); 
+            }
         }
     }
 }
@@ -226,19 +241,19 @@ void mflo::store_inertgas_conc(int lev)
             const Box& bx = mfi.tilebox();
             Array4<Real> snew_arr = S_new.array(mfi);
 
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
-            {
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+
                 if(snew_arr(i,j,k,VFRAC_INDX) >= one)
                 {
                     Real spec[NUM_SPECIES];
                     for (int c = 0; c < NUM_SPECIES; c++) 
                     {
-                       spec[c] = snew_arr(i, j, k, c + FLO_NVARS);
+                        spec[c] = snew_arr(i, j, k, c + FLO_NVARS);
                     }
                     snew_arr(i, j, k, DENS_INDX)=
                     mflo_thermo::get_bgasconc_from_rc(snew_arr(i,j,k,RHO_INDX),spec);
-               }
-           });
+                }
+            });
         }
     }
 }
@@ -259,8 +274,8 @@ void mflo::update_primitive_vars(int lev)
             const Box& bx = mfi.tilebox();
             Array4<Real> snew_arr = S_new.array(mfi);
 
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
-            {
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+
                 if(snew_arr(i,j,k,VFRAC_INDX) >= one)
                 {
                     Real u[NCVARS+NUM_SPECIES], p[NCVARS];
@@ -279,16 +294,16 @@ void mflo::update_primitive_vars(int lev)
                         snew_arr(i, j, k, c + DENS_INDX) = p[c + DENS_IND];
                     }
                     snew_arr(i, j, k, TEMP_INDX)=mflo_thermo::get_t_from_rpc(snew_arr(i, j, k, DENS_INDX),
-                        snew_arr(i, j, k, PRES_INDX),u+NCVARS);
-               }
-           });
-          
-           Real minpressure=S_new[mfi].min<RunOn::Device>(PRES_INDX);
-           if(minpressure < 0 and nsflag)
-           {
-               Print() << "Minimum pressure in domain:" << minpressure << "\n";
-               amrex::Abort("Pressure has gone negative"); 
-           }
+                                                                             snew_arr(i, j, k, PRES_INDX),u+NCVARS);
+                }
+            });
+
+            Real minpressure=S_new[mfi].min<RunOn::Device>(PRES_INDX);
+            if(minpressure < 0 and nsflag)
+            {
+                Print() << "Minimum pressure in domain:" << minpressure << "\n";
+                amrex::Abort("Pressure has gone negative"); 
+            }
         }
     }
 }
@@ -335,7 +350,7 @@ void mflo::timeStep(int lev, Real time, int iteration, bool only_flow)
     {
         amrex::Print() << "[Level " << lev << " step " << istep[lev] + 1 << "] ";
         amrex::Print() << "ADVANCE with time = " << t_new[lev]
-                       << " dt = " << dt[lev] << std::endl;
+        << " dt = " << dt[lev] << std::endl;
     }
 
 
@@ -348,7 +363,7 @@ void mflo::timeStep(int lev, Real time, int iteration, bool only_flow)
     {
         amrex::Print() << "[Level " << lev << " step " << istep[lev] << "] ";
         amrex::Print() << "Advanced " << CountCells(lev) << " cells"
-                       << std::endl;
+        << std::endl;
     }
 
     if (lev < finest_level) 
@@ -374,19 +389,19 @@ void mflo::Advance_coupled(int lev, Real time, Real dt_lev, int iteration, int n
 {
     constexpr int num_grow = 3;
     std::swap(phi_old[lev], phi_new[lev]); // old becomes new and new becomes
-                                           // old
+    // old
     t_old[lev] = t_new[lev];        // old time is now current time (time)
     t_new[lev] += dt_lev;           // new time is ahead
     MultiFab& S_new = phi_new[lev]; // this is the old value, beware!
     MultiFab& S_old = phi_old[lev]; // current value
-    
+
     //RK3 TVD scheme
     // State with ghost cells
     MultiFab Sborder(grids[lev], dmap[lev], S_new.nComp(), num_grow);
     // source term
     MultiFab dsdt_flow(grids[lev], dmap[lev], S_new.nComp(), 0);
     MultiFab dsdt_chemistry(grids[lev], dmap[lev], S_new.nComp(), 0);
-    
+
     if (do_reflux)
     {
         if (flux_reg[lev + 1]) 
@@ -423,7 +438,7 @@ void mflo::Advance_coupled(int lev, Real time, Real dt_lev, int iteration, int n
     {
         compute_dsdt_chemistry(lev, num_grow, Sborder, dsdt_chemistry, time);
     }
-    
+
     // S_new=3/4 S_old+1/4 S_new + 1/4 dt*dsdt
     // S_new = S_new + dt*dsdt
     // S_new = S_new + 3*S_old
@@ -435,7 +450,7 @@ void mflo::Advance_coupled(int lev, Real time, Real dt_lev, int iteration, int n
     }
     MultiFab::Saxpy(S_new, Real(3.0), S_old, 0, 0, S_new.nComp(), 0);
     S_new.mult(fourth);
-    
+
     // stage 3
     // time+dt_lev lets me pick S_new for sborder
     FillPatch(lev, time + dt_lev, Sborder, 0, Sborder.nComp());
@@ -445,6 +460,7 @@ void mflo::Advance_coupled(int lev, Real time, Real dt_lev, int iteration, int n
     {
         compute_dsdt_chemistry(lev, num_grow, Sborder, dsdt_chemistry, time);
     }
+    //note: use Xpay instead of saxpy to reduce complications
     // S_new=1/3 S_old+2/3 S_new + 2/3 dt*dsdt
     // S_new = S_new + dt*dsdt
     // S_new = S_new*2
@@ -475,14 +491,14 @@ void mflo::Advance_coupled(int lev, Real time, Real dt_lev, int iteration, int n
     compute_dsdt_flow(lev, num_grow, Sborder, dsdt_flow, time, half * dt_lev, false);
     if(!only_flow)
     {
-        compute_dsdt_chemistry(lev, num_grow, Sborder, dsdt_chemistry, time);
+    compute_dsdt_chemistry(lev, num_grow, Sborder, dsdt_chemistry, time);
     }
     // S_new=S_old+0.5*dt*dsdt //sold is the current value
     MultiFab::LinComb(S_new, one, Sborder, 0, half * dt_lev, dsdt_flow, 0, 0, S_new.nComp(), 0);
 
     if(!only_flow)
     {
-        MultiFab::Saxpy(S_new, half*dt_lev, dsdt_chemistry, 0, 0, S_new.nComp(), 0);
+    MultiFab::Saxpy(S_new, half*dt_lev, dsdt_chemistry, 0, 0, S_new.nComp(), 0);
     }
 
     // stage 2
@@ -493,13 +509,13 @@ void mflo::Advance_coupled(int lev, Real time, Real dt_lev, int iteration, int n
     compute_dsdt_flow(lev, num_grow, Sborder, dsdt_flow, time + half * dt_lev, dt_lev, true);
     if(!only_flow)
     {
-        compute_dsdt_chemistry(lev, num_grow, Sborder, dsdt_chemistry, time + half * dt_lev);
+    compute_dsdt_chemistry(lev, num_grow, Sborder, dsdt_chemistry, time + half * dt_lev);
     }
     // S_new=S_old+dt*dsdt
     MultiFab::LinComb(S_new, one, S_old, 0, dt_lev, dsdt_flow, 0, 0, S_new.nComp(), 0);
     if(!only_flow)
     {
-        MultiFab::Saxpy(S_new, dt_lev, dsdt_chemistry, 0, 0, S_new.nComp(), 0);
+    MultiFab::Saxpy(S_new, dt_lev, dsdt_chemistry, 0, 0, S_new.nComp(), 0);
     }*/
 }
 
@@ -530,11 +546,11 @@ void mflo::Advance_chemistry(int lev, Real time, Real dt_lev)
 }
 
 void mflo::compute_dsdt_chemistry(
-        int lev,
-        const int num_grow,
-        MultiFab& S,
-        MultiFab& dsdt,
-        Real time)
+    int lev,
+    const int num_grow,
+    MultiFab& S,
+    MultiFab& dsdt,
+    Real time)
 {
     dsdt.setVal(zeroval);
 
@@ -557,12 +573,11 @@ void mflo::compute_dsdt_chemistry(
             auto prob_lo = geom[lev].ProbLoArray();
             const auto dx = geom[lev].CellSizeArray();
 
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
-            {
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
                 mflo_chem_reactions::compute_spec_source(
                     i, j, k, s_arr, source_arr, prob_lo, dx, time);
             });
-          
+
             dsdt[mfi].plus<RunOn::Device>(source_fab);
         }
     }
@@ -580,7 +595,7 @@ void mflo::update_cutcell_data(
     const auto dx = geom[lev].CellSizeArray();
     int using_inert_gas=using_bg_inertgas;
     int spec_in_solid=species_in_solid;
-    
+
     for (MFIter mfi(Sborder, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
     {
         const Box& bx = mfi.tilebox();
@@ -593,16 +608,37 @@ void mflo::update_cutcell_data(
     }
 }
 
+void mflo::clip_neg_speciesconc(int lev)
+{
+    MultiFab& Snew = phi_new[lev];
+
+    for (MFIter mfi(Snew); mfi.isValid(); ++mfi) 
+    {
+        const Box& bx = mfi.tilebox();
+        Array4<Real> snew_arr = Snew.array(mfi);
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+            for(int sp=0;sp<NUM_SPECIES;sp++)
+            {
+                if(snew_arr(i,j,k,FLO_NVARS+sp) < 0.0)
+                {
+                    snew_arr(i,j,k,FLO_NVARS+sp)=0.0;
+                }
+            }
+        });
+    }
+}
+
 // advance a single level for a single time step, updates flux registers
 void mflo::compute_dsdt_flow(
-        int lev,
-        const int num_grow,
-        MultiFab& Sborder,
-        MultiFab& dsdt,
-        Real time,
-        Real tstep,
-        Real fluxfactor,
-        bool reflux_this_stage)
+    int lev,
+    const int num_grow,
+    MultiFab& Sborder,
+    MultiFab& dsdt,
+    Real time,
+    Real tstep,
+    Real fluxfactor,
+    bool reflux_this_stage)
 {
 
     const auto dx = geom[lev].CellSizeArray();
@@ -620,7 +656,7 @@ void mflo::compute_dsdt_flow(
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) 
     {
         BoxArray ba =
-            amrex::convert(dsdt.boxArray(), IntVect::TheDimensionVector(idim));
+        amrex::convert(dsdt.boxArray(), IntVect::TheDimensionVector(idim));
         flux[idim].define(ba, dsdt.DistributionMap(), ncomp, 0);
         flux[idim].setVal(zeroval);
     }
@@ -652,14 +688,12 @@ void mflo::compute_dsdt_flow(
             GpuArray<Array4<Real>, AMREX_SPACEDIM> flux_arr{AMREX_D_DECL(
                     flux[0].array(mfi), flux[1].array(mfi), flux[2].array(mfi))};
 
-            amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
-            {
+            amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) { 
                 mflo_user_funcs::compute_fluid_transport(
                     i, j, k, sborder_arr, fluid_transport_arr, prob_lo, dx, time);
             });
-            
-            amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
-            {
+
+            amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) { 
                 mflo_chem_transport::compute_spec_dcoeff(
                     i, j, k, sborder_arr, specdiff_arr, prob_lo, dx, time);
             });
@@ -668,42 +702,42 @@ void mflo::compute_dsdt_flow(
                 mflo_user_funcs::compute_fluid_source(
                     i, j, k, sborder_arr, source_arr, prob_lo, dx, time);
             });
-            
+
             amrex::ParallelFor(
-                    amrex::growHi(bx, 0, 1),
-                    [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+                amrex::growHi(bx, 0, 1),
+                [=] AMREX_GPU_DEVICE(int i, int j, int k) {
                     compute_flux(
-                    i, j, k, XDIR, sborder_arr, fluid_transport_arr, 
-                    specdiff_arr, flux_arr[0], 
-                    dx, hyperbolics_order,hyperbolics_dissfactor,nsflag,spec_in_solid);
+                        i, j, k, XDIR, sborder_arr, fluid_transport_arr, 
+                        specdiff_arr, flux_arr[0], 
+                        dx, hyperbolics_order,hyperbolics_dissfactor,nsflag,spec_in_solid);
                 });
 
             amrex::ParallelFor(
-                    amrex::growHi(bx, 1, 1),
-                    [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+                amrex::growHi(bx, 1, 1),
+                [=] AMREX_GPU_DEVICE(int i, int j, int k) {
                     compute_flux(
-                    i, j, k, YDIR, sborder_arr, fluid_transport_arr, 
-                    specdiff_arr, flux_arr[1], 
-                    dx, hyperbolics_order,hyperbolics_dissfactor,nsflag,spec_in_solid);
+                        i, j, k, YDIR, sborder_arr, fluid_transport_arr, 
+                        specdiff_arr, flux_arr[1], 
+                        dx, hyperbolics_order,hyperbolics_dissfactor,nsflag,spec_in_solid);
                 });
 
             amrex::ParallelFor(
-                    amrex::growHi(bx, 2, 1),
-                    [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+                amrex::growHi(bx, 2, 1),
+                [=] AMREX_GPU_DEVICE(int i, int j, int k) {
                     compute_flux(
-                    i, j, k, ZDIR, sborder_arr, fluid_transport_arr, 
-                    specdiff_arr, flux_arr[2], 
-                    dx, hyperbolics_order,hyperbolics_dissfactor,nsflag,spec_in_solid);
+                        i, j, k, ZDIR, sborder_arr, fluid_transport_arr, 
+                        specdiff_arr, flux_arr[2], 
+                        dx, hyperbolics_order,hyperbolics_dissfactor,nsflag,spec_in_solid);
                 });
 
             // update residual
             amrex::ParallelFor(
-                    bx, ncomp, [=] AMREX_GPU_DEVICE(int i, int j, int k, int n) {
+                bx, ncomp, [=] AMREX_GPU_DEVICE(int i, int j, int k, int n) {
                     update_residual(
-                            i, j, k, n, dsdt_arr, source_arr, sborder_arr,
-                            AMREX_D_DECL(flux_arr[0], flux_arr[1], flux_arr[2]),
-                            dx,spec_in_solid);
-                    });
+                        i, j, k, n, dsdt_arr, source_arr, sborder_arr,
+                        AMREX_D_DECL(flux_arr[0], flux_arr[1], flux_arr[2]),
+                        dx,spec_in_solid);
+                });
         }
     }
 
@@ -715,8 +749,8 @@ void mflo::compute_dsdt_flow(
             {
                 // update the lev+1/lev flux register (index lev+1)
                 const Real dA =
-                    (i == 0) ? dx[1] * dx[2]
-                    : ((i == 1) ? dx[0] * dx[2] : dx[0] * dx[1]);
+                (i == 0) ? dx[1] * dx[2]
+                : ((i == 1) ? dx[0] * dx[2] : dx[0] * dx[1]);
                 const Real scale = -tstep * dA * fluxfactor;
                 flux_reg[lev + 1]->CrseInit(flux[i], i, 0, 0, ncomp, scale, FluxRegister::ADD);
             }
@@ -727,8 +761,8 @@ void mflo::compute_dsdt_flow(
             {
                 // update the lev/lev-1 flux register (index lev)
                 const Real dA =
-                    (i == 0) ? dx[1] * dx[2]
-                    : ((i == 1) ? dx[0] * dx[2] : dx[0] * dx[1]);
+                (i == 0) ? dx[1] * dx[2]
+                : ((i == 1) ? dx[0] * dx[2] : dx[0] * dx[1]);
                 const Real scale = tstep * dA * fluxfactor;
                 flux_reg[lev]->FineAdd(flux[i], i, 0, 0, ncomp, scale);
             }

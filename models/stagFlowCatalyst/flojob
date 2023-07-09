@@ -1,0 +1,11 @@
+#!/bin/bash
+#SBATCH --job-name=stagflow
+#SBATCH --partition=short
+#SBATCH --nodes=4
+#SBATCH --ntasks-per-node=32
+#SBATCH --time=04:00:00
+#SBATCH --account=biocon
+#SBATCH --output=regout
+#SBATCH --error=regerr
+
+srun -n 128 ./mesoflow3d.gnu.MPI.ex inputs user.jetrad=5e-4 user.CH4conc=0.1

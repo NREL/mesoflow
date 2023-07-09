@@ -291,6 +291,8 @@ update_cutcells(int i, int j, int k,
 
     if(phi(i,j,k,VFRAC_INDX)>zeroval && phi(i,j,k,VFRAC_INDX)<one)
     {
+
+        //3 by 3 stencil for lsgrad
         for(int n=-1;n<=1;n++)
         {
             for(int m=-1;m<=1;m++)

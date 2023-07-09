@@ -11,4 +11,4 @@
 source ~/loadcuda.sh
 export MFLO_HOME=/projects/biocon/mesoflow/
 export AMREX_HOME=/home/hsitaram/gitrepos/ECP_codes/amrex
-. ./script_reg_testing.sh 32 srun ~/ytenv.sh /projects/biocon/mesoflow/tests/mflo_results_cpu "DEBUG=TRUE"
+. ./script_reg_testing.sh 32 srun ~/ytenv.sh /scratch/hsitaram/mesobio/mesoflow/tests/mflo_results_cpu "DEBUG=TRUE"

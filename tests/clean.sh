@@ -1,1 +1,1 @@
-rm -rf plt* resnorms.* Backtrace.*
+rm -rf plt* resnorms.* Backtrace.* chk* core.*

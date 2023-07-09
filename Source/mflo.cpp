@@ -289,6 +289,7 @@ void mflo::ReadParameters()
         pp.query("track_residual_norms",track_residual_norms);
         pp.query("using_bg_inertgas",using_bg_inertgas);
         pp.query("order_hyp",order_hyp);
+        pp.query("clip_species",clip_species);
         pp.query("dissfactor",dissfactor);
         pp.query("species_in_solid",species_in_solid);
     }

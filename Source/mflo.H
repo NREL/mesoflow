@@ -113,6 +113,7 @@ public:
     void compute_residual_norms();
     void update_cutcell_data(int lev, const int num_grow,
     MultiFab& Sborder,Real time,Real dt);
+    void clip_neg_speciesconc(int lev);
 
 private:
     ////////////////
@@ -227,6 +228,7 @@ private:
 
     int wallbc_id = 6;
     int order_hyp=2;
+    int clip_species=1;
     Real dissfactor=0.5;
     int species_in_solid=1;
 

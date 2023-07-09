@@ -1,0 +1,32 @@
+#ifndef _TRANSPORT_H_
+#define _TRANSPORT_H_
+
+#include <AMReX_Geometry.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_REAL.H>
+#include <species.H>
+
+using namespace amrex;
+namespace mflo_chem_transport
+{
+    AMREX_GPU_DEVICE AMREX_INLINE
+        void compute_spec_dcoeff(int i, int j, int k,
+                Array4<Real> const& phi,
+                Array4<Real> const& dcoeff,
+                GpuArray<Real, AMREX_SPACEDIM> prob_lo,
+                GpuArray<Real, AMREX_SPACEDIM> dx,
+                const Real time)
+        {
+            Real gasfrac=phi(i,j,k,VFRAC_INDX);
+            Real solfrac=one-gasfrac;
+          
+            for(int sp=0;sp<NUM_GAS_SPECIES;sp++)
+            { 
+               dcoeff(i,j,k,sp)=gasfrac*1e-5+solfrac*1e-8;
+            }
+            dcoeff(i,j,k,C2H4_ID)=gasfrac*1e-3+solfrac*1e-8;
+            dcoeff(i,j,k,H2O_ID)=gasfrac*1e-3+solfrac*1e-8;
+            dcoeff(i,j,k,S_ID)=0.0;
+        }
+}
+#endif
