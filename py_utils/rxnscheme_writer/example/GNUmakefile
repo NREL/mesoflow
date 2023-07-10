@@ -1,5 +1,5 @@
 AMREX_HOME ?= ../../../../..
-MFLO_HOME = /scratch/mcrowley2/mesoflow
+MFLO_HOME ?= ../../../../..
 
 PRECISION  = DOUBLE
 PROFILE    = FALSE
