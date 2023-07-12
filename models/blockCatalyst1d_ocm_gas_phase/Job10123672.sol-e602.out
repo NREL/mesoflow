@@ -1,0 +1,177 @@
+
+Lmod is automatically replacing "intel/2021.3.0" with "gcc/9.3.0".
+
+
+Due to MODULEPATH changes, the following have been reloaded:
+  1) mvapich2/2.3.4
+
+/share/Apps/alt/amrex/23.02/avx2/gcc/9.3.0/mvapich2/2.3.4
+MPI initialized with 32 MPI processes
+MPI initialized with thread support level 0
+AMReX (23.02) initialized
+Using default ref_ratio = 2 at all levels
+Successfully read inputs file ... 
+amrex::Abort::18::Invalid tagging variable !!!
+amrex::Abort::23::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::24::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::25::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::26::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::28::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::29::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::31::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::8::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::9::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::10::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::11::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::12::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::13::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::14::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::15::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::16::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::17::Invalid tagging variable !!!
+SIGABRT
+SIGABRT
+amrex::Abort::19::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::20::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::21::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::22::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::27::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::30::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::7::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::1::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::2::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::3::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::4::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::5::Invalid tagging variable !!!
+SIGABRT
+amrex::Abort::6::Invalid tagging variable !!!
+SIGABRT
+Variable name:S2 not found for tagging
+amrex::Abort::0::Invalid tagging variable !!!
+SIGABRT
+See Backtrace.18 file for details
+See Backtrace.19 file for details
+See Backtrace.20 file for details
+See Backtrace.24 file for details
+See Backtrace.25 file for details
+See Backtrace.28 file for details
+See Backtrace.29 file for details
+See Backtrace.30 file for details
+See Backtrace.4 file for details
+See Backtrace.5 file for details
+See Backtrace.6 file for details
+See Backtrace.7 file for details
+See Backtrace.11 file for details
+See Backtrace.12 file for details
+See Backtrace.13 file for details
+See Backtrace.14 file for details
+See Backtrace.16 file for details
+See Backtrace.17 file for details
+See Backtrace.21 file for details
+See Backtrace.22 file for details
+See Backtrace.23 file for details
+See Backtrace.26 file for details
+See Backtrace.27 file for details
+See Backtrace.9 file for details
+See Backtrace.2 file for details
+See Backtrace.0 file for details
+See Backtrace.3 file for details
+See Backtrace.1 file for details
+See Backtrace.15 file for details
+See Backtrace.8 file for details
+See Backtrace.10 file for details
+See Backtrace.31 file for details
+[cli_4]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 4
+[cli_5]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 5
+[cli_6]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 6
+[cli_7]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 7
+[cli_11]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 11
+[cli_13]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 13
+[cli_14]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 14
+[cli_16]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 16
+[cli_17]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 17
+[cli_18]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 18
+[cli_19]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 19
+[cli_20]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 20
+[cli_21]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 21
+[cli_22]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 22
+[cli_23]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 23
+[cli_24]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 24
+[cli_25]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 25
+[cli_26]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 26
+[cli_27]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 27
+[cli_28]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 28
+[cli_29]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 29
+[cli_30]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 30
+[cli_0]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 0
+[cli_2]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 2
+[cli_9]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 9
+[cli_12]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 12
+[cli_1]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 1
+[cli_3]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 3
+[cli_8]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 8
+[cli_15]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 15
+[cli_10]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 10
+[cli_31]: aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 6) - process 31
+slurmstepd: error: *** STEP 10123672.0 ON sol-e602 CANCELLED AT 2023-07-12T11:48:29 ***
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+srun: error: sol-e602: tasks 0-31: Killed
