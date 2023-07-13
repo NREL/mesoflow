@@ -9,6 +9,6 @@
 5. Plot concentrations when run has finished using plot-quants.py, changing the species names to match your mechanism. The order of columns is the order of your species as defined in species.H.
 
 ## Troubleshooting
-- *Important*: Delete or rename quants.0.dat in between runs or else it will have the data from the next run appended to it.
-- If you see nans in quants.0.dat, reduce the timestep (dt in driver.cpp) or check your mechanism for errors
+- *Important*: Delete or rename quants.dat.0 in between runs or else it will have the data from the next run appended to it.
+- If you see nans in quants.dat.0, reduce the timestep (dt in driver.cpp) or check your mechanism for errors
 
