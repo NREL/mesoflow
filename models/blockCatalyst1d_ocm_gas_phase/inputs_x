@@ -38,7 +38,59 @@ mflo.hi_bc = 3 6 6
 
 # Tagging
 
-mflo.tagged_vars = volfrac
+mflo.tagged_vars = volfrac Ar CH4 C2H6 C2H4 C2H2 C3H8 C3H6
+O2 H2O H2O2 CH2O CO CO2 H2 HO2 O OH CH3 C2H5 C2H3 C3H7
+CH3O CHO H
+mflo.Ar_refine = 1e20
+mflo.CH4_refine = 1e20
+mflo.O2_refine = 1e20
+mflo.C2H6_refine = 0.11
+mflo.C2H4_refine = 0.11
+mflo.C2H2_refine = 0.11
+mflo.C3H8_refine = 0.11
+mflo.C3H6_refine = 0.11
+mflo.H2O_refine = 0.11
+mflo.H2O2_refine = 0.11
+mflo.CH2O_refine = 0.11
+mflo.CO_refine = 0.11
+mflo.CO2_refine = 0.11
+mflo.H2_refine = 0.11
+mflo.HO2_refine = 0.11
+mflo.O_refine = 0.11
+mflo.OH_refine = 0.11
+mflo.CH3_refine = 0.11
+mflo.C2H5_refine = 0.11
+mflo.C2H3_refine = 0.11
+mflo.C3H7_refine = 0.11
+mflo.CH3O_refine = 0.11
+mflo.CHO_refine = 0.11
+mflo.H_refine = 0.11
+
+mflo.Ar_refinegrad = 0.1
+mflo.CH4_refinegrad = 0.1
+mflo.O2_refinegrad = 0.1
+mflo.C2H6_refinegrad = 1e20
+mflo.C2H4_refinegrad = 1e20
+mflo.C2H2_refinegrad = 1e20
+mflo.C3H8_refinegrad = 1e20
+mflo.C3H6_refinegrad = 1e20
+mflo.H2O_refinegrad = 1e20
+mflo.H2O2_refinegrad = 1e20
+mflo.CH2O_refinegrad = 1e20
+mflo.CO_refinegrad = 1e20
+mflo.CO2_refinegrad = 1e20
+mflo.H2_refinegrad = 1e20
+mflo.HO2_refinegrad = 1e20
+mflo.O_refinegrad = 1e20
+mflo.OH_refinegrad = 1e20
+mflo.CH3_refinegrad = 1e20
+mflo.C2H5_refinegrad= 1e20
+mflo.C2H3_refinegrad = 1e20
+mflo.C3H7_refinegrad = 1e20
+mflo.CH3O_refinegrad = 1e20
+mflo.CHO_refinegrad = 1e20
+mflo.H_refinegrad = 1e20
+
 mflo.volfrac_refine = 1e20
 mflo.volfrac_refinegrad = 0.1
 
@@ -52,7 +104,7 @@ mflo.volfrac_refinegrad = 0.1
 
 # PLOTFILES
 amr.plot_file  = plt    # root name of plot file
-amr.plot_int   = 10000     # number of timesteps between plot files
+amr.plot_int   = 1000     # number of timesteps between plot files
 
 # CHECKPOINT
 amr.chk_file = chk      # root name of checkpoint file

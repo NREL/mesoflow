@@ -1,0 +1,66 @@
+Host Name: sol-e601.cc.lehigh.edu
+=== If no file names and line numbers are shown below, one can run
+            addr2line -Cpfie my_exefile my_line_address
+    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.
+    Or one can use amrex/Tools/Backtrace/parse_bt.py.
+
+=== Please note that the line number reported by addr2line may not be accurate.
+    One can use
+            readelf -wl my_exefile | grep my_line_address'
+    to find out the offset for that line.
+
+ 0: /home/lch224/mesoflow/models/blockCatalyst1d_ocm_gas_phase/./mesoflow3d.gnu.MPI.ex() [0x58e186]
+    amrex::BLBackTrace::print_backtrace_info(_IO_FILE*)
+/share/Apps/alt/amrex/23.02/avx512/gcc/9.3.0/mvapich2/2.3.4/Src/Base/AMReX_BLBackTrace.cpp:196:36
+
+ 1: /home/lch224/mesoflow/models/blockCatalyst1d_ocm_gas_phase/./mesoflow3d.gnu.MPI.ex() [0x58fef8]
+    amrex::BLBackTrace::handler(int)
+/share/Apps/alt/amrex/23.02/avx512/gcc/9.3.0/mvapich2/2.3.4/Src/Base/AMReX_BLBackTrace.cpp:96:15
+
+ 2: /home/lch224/mesoflow/models/blockCatalyst1d_ocm_gas_phase/./mesoflow3d.gnu.MPI.ex() [0x487167]
+    sgetval<bool>
+/share/Apps/alt/amrex/23.02/avx512/gcc/9.3.0/mvapich2/2.3.4/Src/Base/AMReX_ParmParse.cpp:846:1
+
+ 3: /home/lch224/mesoflow/models/blockCatalyst1d_ocm_gas_phase/./mesoflow3d.gnu.MPI.ex() [0x488a1f]
+    sgetval<double> inlined at /share/Apps/alt/amrex/23.02/avx512/gcc/9.3.0/mvapich2/2.3.4/Src/Base/AMReX_ParmParse.cpp:1729:12 in amrex::ParmParse::get(char const*, double&, int) const
+/share/Apps/alt/amrex/23.02/avx512/gcc/9.3.0/mvapich2/2.3.4/Src/Base/AMReX_ParmParse.cpp:1730:1
+amrex::ParmParse::get(char const*, double&, int) const
+/share/Apps/alt/amrex/23.02/avx512/gcc/9.3.0/mvapich2/2.3.4/Src/Base/AMReX_ParmParse.cpp:1729:12
+
+ 4: /home/lch224/mesoflow/models/blockCatalyst1d_ocm_gas_phase/./mesoflow3d.gnu.MPI.ex() [0x4221da]
+    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_is_local() const inlined at /share/Apps/compilers/opt/spack/linux-centos8-x86_64/gcc-8.3.1/gcc/9.3.0-vw54w6r/include/c++/9.3.0/bits/basic_string.h:231:6 in mflo::ErrorEst(int, amrex::TagBoxArray&, double, int)
+/share/Apps/compilers/opt/spack/linux-centos8-x86_64/gcc-8.3.1/gcc/9.3.0-vw54w6r/include/c++/9.3.0/bits/basic_string.h:222:26
+std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_dispose()
+/share/Apps/compilers/opt/spack/linux-centos8-x86_64/gcc-8.3.1/gcc/9.3.0-vw54w6r/include/c++/9.3.0/bits/basic_string.h:231:6
+std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::~basic_string()
+/share/Apps/compilers/opt/spack/linux-centos8-x86_64/gcc-8.3.1/gcc/9.3.0-vw54w6r/include/c++/9.3.0/bits/basic_string.h:658:9
+mflo::ErrorEst(int, amrex::TagBoxArray&, double, int)
+../../../mesoflow/Source/mflo.cpp:204:33
+
+ 5: /home/lch224/mesoflow/models/blockCatalyst1d_ocm_gas_phase/./mesoflow3d.gnu.MPI.ex() [0x60a6b9]
+    amrex::AmrMesh::MakeNewGrids(int, double, int&, amrex::Vector<amrex::BoxArray, std::allocator<amrex::BoxArray> >&)
+/share/Apps/alt/amrex/23.02/avx512/gcc/9.3.0/mvapich2/2.3.4/Src/AmrCore/AMReX_AmrMesh.cpp:623:21
+
+ 6: /home/lch224/mesoflow/models/blockCatalyst1d_ocm_gas_phase/./mesoflow3d.gnu.MPI.ex() [0x60bf66]
+    amrex::AmrMesh::MakeNewGrids(double)
+/share/Apps/alt/amrex/23.02/avx512/gcc/9.3.0/mvapich2/2.3.4/Src/AmrCore/AMReX_AmrMesh.cpp:807:31
+
+ 7: /home/lch224/mesoflow/models/blockCatalyst1d_ocm_gas_phase/./mesoflow3d.gnu.MPI.ex() [0x41f915]
+    mflo::InitData()
+../../../mesoflow/Source/mflo.cpp:162:20
+
+ 8: /home/lch224/mesoflow/models/blockCatalyst1d_ocm_gas_phase/./mesoflow3d.gnu.MPI.ex() [0x4198e6]
+    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_Alloc_hider::_Alloc_hider(char*, std::allocator<char> const&) inlined at /share/Apps/compilers/opt/spack/linux-centos8-x86_64/gcc-8.3.1/gcc/9.3.0-vw54w6r/include/c++/9.3.0/bits/basic_string.h:526:41 in main
+/share/Apps/compilers/opt/spack/linux-centos8-x86_64/gcc-8.3.1/gcc/9.3.0-vw54w6r/include/c++/9.3.0/bits/basic_string.h:157:35
+std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string<std::allocator<char> >(char const*, std::allocator<char> const&)
+/share/Apps/compilers/opt/spack/linux-centos8-x86_64/gcc-8.3.1/gcc/9.3.0-vw54w6r/include/c++/9.3.0/bits/basic_string.h:526:41
+main
+../../../mesoflow/Source/main.cpp:36:28
+
+ 9: /lib64/libc.so.6(__libc_start_main+0xf3) [0x7f6718ec3493]
+    __libc_start_main
+../csu/libc-start.c:348:3
+
+10: /home/lch224/mesoflow/models/blockCatalyst1d_ocm_gas_phase/./mesoflow3d.gnu.MPI.ex() [0x41cfde]
+    _start at ??:?
+

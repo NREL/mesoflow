@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --partition=chem
+#SBATCH --partition=enge
 #SBATCH --time=1:00:00 #Wall Time Limit
 #SBATCH --ntasks-per-node=32 #CPU Count
 #SBATCH --qos=regular
