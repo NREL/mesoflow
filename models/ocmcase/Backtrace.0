@@ -1,0 +1,60 @@
+Host Name: sol-e604.cc.lehigh.edu
+=== If no file names and line numbers are shown below, one can run
+            addr2line -Cpfie my_exefile my_line_address
+    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.
+    Or one can use amrex/Tools/Backtrace/parse_bt.py.
+
+=== Please note that the line number reported by addr2line may not be accurate.
+    One can use
+            readelf -wl my_exefile | grep my_line_address'
+    to find out the offset for that line.
+
+ 0: /home/lch224/mesoflow/models/ocmcase/./mesoflow3d.gnu.MPI.ex() [0x58d4a6]
+    amrex::BLBackTrace::print_backtrace_info(_IO_FILE*)
+/share/Apps/alt/amrex/23.02/avx512/gcc/9.3.0/mvapich2/2.3.4/Src/Base/AMReX_BLBackTrace.cpp:196:36
+
+ 1: /home/lch224/mesoflow/models/ocmcase/./mesoflow3d.gnu.MPI.ex() [0x58f218]
+    amrex::BLBackTrace::handler(int)
+/share/Apps/alt/amrex/23.02/avx512/gcc/9.3.0/mvapich2/2.3.4/Src/Base/AMReX_BLBackTrace.cpp:96:15
+
+ 2: /home/lch224/mesoflow/models/ocmcase/./mesoflow3d.gnu.MPI.ex() [0x4491be]
+    amrex::Abort(char const*) inlined at ../../../mesoflow/Source/Src_3d/div_3d.H:47:21 in mflo::compute_dsdt_flow(int, int, amrex::MultiFab&, amrex::MultiFab&, double, double, double, bool)
+/share/Apps/alt/amrex/23.02/avx512/gcc/9.3.0/mvapich2/2.3.4/Src/Base/AMReX.H:155:19
+update_residual(int, int, int, int, amrex::Array4<double> const&, amrex::Array4<double> const&, amrex::Array4<double> const&, amrex::Array4<double> const&, amrex::Array4<double> const&, amrex::Array4<double> const&, amrex::GpuArray<double, 3u> const&, int)
+../../../mesoflow/Source/Src_3d/div_3d.H:47:21
+operator()
+../../../mesoflow/Source/mflo_evolve.cpp:736:36
+call_f<mflo::compute_dsdt_flow(int, int, amrex::MultiFab&, amrex::MultiFab&, amrex::Real, amrex::Real, amrex::Real, bool)::<lambda(int, int, int, int)>, int>
+/share/Apps/alt/amrex/23.02/avx512/gcc/9.3.0/mvapich2/2.3.4/Src/Base/AMReX_GpuLaunchFunctsC.H:45:10
+ParallelFor<int, mflo::compute_dsdt_flow(int, int, amrex::MultiFab&, amrex::MultiFab&, amrex::Real, amrex::Real, amrex::Real, bool)::<lambda(int, int, int, int)> >
+/share/Apps/alt/amrex/23.02/avx512/gcc/9.3.0/mvapich2/2.3.4/Src/Base/AMReX_GpuLaunchFunctsC.H:236:27
+mflo::compute_dsdt_flow(int, int, amrex::MultiFab&, amrex::MultiFab&, double, double, double, bool)
+../../../mesoflow/Source/mflo_evolve.cpp:734:31
+
+ 3: /home/lch224/mesoflow/models/ocmcase/./mesoflow3d.gnu.MPI.ex() [0x452622]
+    mflo::Advance_coupled(int, double, double, int, int, bool)
+../../../mesoflow/Source/mflo_evolve.cpp:437:5
+
+ 4: /home/lch224/mesoflow/models/ocmcase/./mesoflow3d.gnu.MPI.ex() [0x452e2c]
+    std::vector<int, std::allocator<int> >::operator[](unsigned long) inlined at /share/Apps/alt/amrex/23.02/avx512/gcc/9.3.0/mvapich2/2.3.4/Src/Base/AMReX_Vector.H:37:61 in mflo::timeStep(int, double, int, bool)
+/share/Apps/compilers/opt/spack/linux-centos8-x86_64/gcc-8.3.1/gcc/9.3.0-vw54w6r/include/c++/9.3.0/bits/stl_vector.h:1043:39
+amrex::Vector<int, std::allocator<int> >::operator[](unsigned long)
+/share/Apps/alt/amrex/23.02/avx512/gcc/9.3.0/mvapich2/2.3.4/Src/Base/AMReX_Vector.H:37:61
+mflo::timeStep(int, double, int, bool)
+../../../mesoflow/Source/mflo_evolve.cpp:360:16
+
+ 5: /home/lch224/mesoflow/models/ocmcase/./mesoflow3d.gnu.MPI.ex() [0x45411e]
+    mflo::EvolveAMR(double, bool)
+../../../mesoflow/Source/mflo_evolve.cpp:83:27
+
+ 6: /home/lch224/mesoflow/models/ocmcase/./mesoflow3d.gnu.MPI.ex() [0x4198f0]
+    main
+../../../mesoflow/Source/main.cpp:44:31
+
+ 7: /lib64/libc.so.6(__libc_start_main+0xf3) [0x7fa84a5ca493]
+    __libc_start_main
+../csu/libc-start.c:348:3
+
+ 8: /home/lch224/mesoflow/models/ocmcase/./mesoflow3d.gnu.MPI.ex() [0x41cf3e]
+    _start at ??:?
+

@@ -62,7 +62,7 @@ namespace mflo_species
         molwts[CH3O_ID] = 0.03103;
         molwts[CHO_ID] = 0.02902;
         molwts[H_ID] = 0.00101;
-        molwts[S1_ID] = 0.001;
+        molwts[S1_ID] = 0.00000;
 
         //gamma for each species
         gamma_spec[Ar_ID] = 1.6666666669999999;

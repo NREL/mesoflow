@@ -17,7 +17,7 @@ namespace mflo_chem_transport
                 GpuArray<Real, AMREX_SPACEDIM> dx,
                 const Real time)
         {
-            Real solid_dif=1.e-5;
+            Real solid_dif=1.e-10;
             Real fluid_dif=4.27e-5;
             Real vfrac=phi(i,j,k,VFRAC_INDX);
 

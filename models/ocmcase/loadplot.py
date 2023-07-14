@@ -1,5 +1,5 @@
 import yt
-ds=yt.load("plt00054")
+ds=yt.load("plt00050")
 print(ds.field_list)
 
 slc = yt.SlicePlot(ds, "z", "CH4")
