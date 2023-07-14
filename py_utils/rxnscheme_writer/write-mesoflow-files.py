@@ -17,7 +17,7 @@ import os
 import pandas as pd
 
 # Read species.csv and reactions.csv into dataframes
-project_dir='./example'
+project_dir='./gas_phase'
 
 if not os.path.isdir(project_dir):
     os.makedirs(project_dir)
