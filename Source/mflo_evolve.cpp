@@ -5,6 +5,7 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_PhysBCFunct.H>
+#include <AMReX_TimeIntegrator.H>
 #include <kernels_3d.H>
 
 #ifdef AMREX_MEM_PROFILING
@@ -355,7 +356,7 @@ void mflo::timeStep(int lev, Real time, int iteration, bool only_flow)
 
 
     // advance a single level for a single time step, updates flux registers
-    Advance_coupled(lev, time, dt[lev], iteration, nsubsteps[lev],only_flow);
+    Advance_coupled_strang(lev, time, dt[lev], iteration, nsubsteps[lev],only_flow);
 
     ++istep[lev];
 
@@ -382,6 +383,75 @@ void mflo::timeStep(int lev, Real time, int iteration, bool only_flow)
         }
 
         AverageDownTo(lev); // average lev+1 down to lev
+    }
+}
+
+void mflo::Advance_coupled_strang(int lev, Real time, Real dt_lev, int iteration, int ncycle,bool only_flow)
+{
+    constexpr int num_grow = 3;
+    std::swap(phi_old[lev], phi_new[lev]); // old becomes new and new becomes
+                                           // old
+    t_old[lev] = t_new[lev];        // old time is now current time (time)
+    t_new[lev] += dt_lev;           // new time is ahead
+    MultiFab& S_new = phi_new[lev]; // this is the old value, beware!
+    MultiFab& S_old = phi_old[lev]; // current value
+
+    //RK3 TVD scheme
+    // State with ghost cells
+    MultiFab Sborder(grids[lev], dmap[lev], S_new.nComp(), num_grow);
+    // source term
+    MultiFab dsdt_flow(grids[lev], dmap[lev], S_new.nComp(), 0);
+
+    if (do_reflux)
+    {
+        if (flux_reg[lev + 1])
+        {
+            flux_reg[lev+1]->setVal(Real(0.0));
+        }
+    }
+
+
+    // stage 1
+    // time is current time which is t_old
+    FillPatch(lev, time, Sborder, 0, Sborder.nComp());
+    // compute dsdt for 1/2 timestep
+    update_cutcell_data(lev, num_grow, Sborder, time, dt_lev);
+    compute_dsdt_flow(lev, num_grow, Sborder, dsdt_flow, time, dt_lev, sixth, true);
+    // S_new=S_old+dt*dsdt //sold is the current value
+    MultiFab::LinComb(S_new, one, Sborder, 0, dt_lev, dsdt_flow, 0, 0, S_new.nComp(), 0);
+
+
+    // stage 2
+    // time+dt_lev lets me pick S_new for sborder
+    FillPatch(lev, time + dt_lev, Sborder, 0, Sborder.nComp());
+    update_cutcell_data(lev,num_grow,Sborder,time,dt_lev);
+    compute_dsdt_flow(lev, num_grow, Sborder, dsdt_flow, time + dt_lev, dt_lev, sixth,true);
+
+    // S_new=3/4 S_old+1/4 S_new + 1/4 dt*dsdt
+    // S_new = S_new + dt*dsdt
+    // S_new = S_new + 3*S_old
+    // S_new =S_new/4
+    MultiFab::Saxpy(S_new, dt_lev, dsdt_flow, 0, 0, S_new.nComp(), 0);
+    MultiFab::Saxpy(S_new, Real(3.0), S_old, 0, 0, S_new.nComp(), 0);
+    S_new.mult(fourth);
+
+    // stage 3
+    // time+dt_lev lets me pick S_new for sborder
+    FillPatch(lev, time + dt_lev, Sborder, 0, Sborder.nComp());
+    update_cutcell_data(lev,num_grow,Sborder,time,dt_lev);
+    compute_dsdt_flow(lev, num_grow, Sborder, dsdt_flow, time + dt_lev, dt_lev, two3rd,true);
+    // S_new=1/3 S_old+2/3 S_new + 2/3 dt*dsdt
+    // S_new = S_new + dt*dsdt
+    // S_new = S_new + 2*S_old
+    // S_new =S_new/3
+    MultiFab::Saxpy(S_new, dt_lev, dsdt_flow, 0, 0, S_new.nComp(), 0);
+    MultiFab::Xpay(S_new, two, S_old, 0, 0, S_new.nComp(), 0);
+    S_new.mult(third);
+
+    //Advance chemistry here
+    if(!only_flow)
+    {
+        Advance_chemistry_implicit(lev, time, dt_lev);
     }
 }
 
@@ -455,6 +525,8 @@ void mflo::Advance_coupled(int lev, Real time, Real dt_lev, int iteration, int n
     // time+dt_lev lets me pick S_new for sborder
     FillPatch(lev, time + dt_lev, Sborder, 0, Sborder.nComp());
     update_cutcell_data(lev,num_grow,Sborder,time,dt_lev);
+    //NOTE: Using time + dt_lev might be incorrect here, need to verify using beta from the RK3 coefficients
+    //According to one source, this might need to be t + 0.5*dt_lev
     compute_dsdt_flow(lev, num_grow, Sborder, dsdt_flow, time + dt_lev, dt_lev, two3rd,true);
     if(!only_flow)
     {
@@ -543,6 +615,31 @@ void mflo::Advance_chemistry(int lev, Real time, Real dt_lev)
     // S_new=S_old+dt*dsdt
     MultiFab::LinComb(S_new, one, S_old, 0, dt_lev, dsdt_chemistry, 0, 0, S_new.nComp(), 0);
 
+}
+
+void mflo::Advance_chemistry_implicit(int lev, Real time, Real dt_lev)
+{
+    constexpr int num_grow = 3;
+    std::swap(phi_old[lev], phi_new[lev]); // old becomes new and new becomes old
+    MultiFab& S_new = phi_new[lev]; // old value
+    MultiFab& S_old = phi_old[lev]; // current value
+    MultiFab dsdt_chemistry(grids[lev], dmap[lev], S_new.nComp(), 0); // source term
+
+    auto rhs_function = [&] ( Vector<MultiFab> & dSdt_vec, const Vector<MultiFab>& S_vec, const Real time) {
+        auto & dSdt = dSdt_vec[0];
+        MultiFab S(S_vec[0], amrex::make_alias, 0, S_vec[0].nComp());
+        compute_dsdt_chemistry(lev, num_grow, S, dSdt, time);
+    };
+    Vector<MultiFab> state_old, state_new, dSdt_vec;
+    // This term has the current state
+    state_old.push_back(MultiFab(S_old, amrex::make_alias, 0, S_new.nComp()));
+    // This is where the integrator puts the new state, hence aliased to S_new
+    state_new.push_back(MultiFab(S_new, amrex::make_alias, 0, S_new.nComp()));
+    // Define the integrator
+    TimeIntegrator<Vector<MultiFab>> integrator(state_old);
+    integrator.set_rhs(rhs_function);
+    // Advance from time to time + dt_lev
+    integrator.advance(state_old, state_new, time, dt_lev); //S_new/phi_new should have the new state
 }
 
 void mflo::compute_dsdt_chemistry(
