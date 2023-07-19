@@ -617,20 +617,34 @@ void mflo::Advance_chemistry(int lev, Real time, Real dt_lev)
 
 }
 
+/*
+Advances the chemisty state from time -> time + dt_lev
+This is done using TimeIntegrator from AMReX, which can
+be either implicit or explicit depending on the parameters
+in the input file. Implicit currently requires an existing
+SUNDIALS installation, with USE_SUNDIALS=TRUE at compile time,
+along with setting the following in the input file
+
+Explicit (no sundials):
+   integration.type = RungeKutta
+   integration.rk.type = 3 (for 3rd order)
+Implicit (with sundials):
+   integration.type = SUNDIALS
+   integration.sundials.strategy = CVODE
+ */
 void mflo::Advance_chemistry_implicit(int lev, Real time, Real dt_lev)
 {
     constexpr int num_grow = 3;
     std::swap(phi_old[lev], phi_new[lev]); // old becomes new and new becomes old
     MultiFab& S_new = phi_new[lev]; // old value
     MultiFab& S_old = phi_old[lev]; // current value
-    MultiFab dsdt_chemistry(grids[lev], dmap[lev], S_new.nComp(), 0); // source term
 
     auto rhs_function = [&] ( Vector<MultiFab> & dSdt_vec, const Vector<MultiFab>& S_vec, const Real time) {
         auto & dSdt = dSdt_vec[0];
         MultiFab S(S_vec[0], amrex::make_alias, 0, S_vec[0].nComp());
         compute_dsdt_chemistry(lev, num_grow, S, dSdt, time);
     };
-    Vector<MultiFab> state_old, state_new, dSdt_vec;
+    Vector<MultiFab> state_old, state_new;
     // This term has the current state
     state_old.push_back(MultiFab(S_old, amrex::make_alias, 0, S_new.nComp()));
     // This is where the integrator puts the new state, hence aliased to S_new
