@@ -300,6 +300,7 @@ void mflo::ReadParameters()
         if( not pp.contains("type") ) {
             pp.add("type", "RungeKutta");
             pp.add("rk.type", 3);
+            Print() << "Defaulting to explicit RK3 scheme for chemistry solve" << std::endl;
         }
     }
 }
