@@ -77,6 +77,14 @@ public:
         override;
 
     // advance a single level for a single time step, updates flux registers
+    void Advance_coupled_strang(
+        int lev,
+        amrex::Real time,
+        amrex::Real dt_lev,
+        int iteration,
+        int ncycle,bool only_flow=false);
+
+    // advance a single level for a single time step, updates flux registers
     void Advance_coupled(
         int lev,
         amrex::Real time,
@@ -85,6 +93,9 @@ public:
         int ncycle,bool only_flow=false);
 
     void Advance_chemistry(int lev, 
+            Real time, Real dt_lev);
+
+    void Advance_chemistry_implicit(int lev,
             Real time, Real dt_lev);
 
     // compute dt from CFL considerations
