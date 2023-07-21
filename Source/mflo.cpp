@@ -293,6 +293,16 @@ void mflo::ReadParameters()
         pp.query("dissfactor",dissfactor);
         pp.query("species_in_solid",species_in_solid);
     }
+    {
+        // Add default time integration options for the chemisty solver
+        // Note that this is explicit RK3, which does not require sundials
+        ParmParse pp("integration");
+        if( not pp.contains("type") ) {
+            pp.add("type", "RungeKutta");
+            pp.add("rk.type", 3);
+            Print() << "Defaulting to explicit RK3 scheme for chemistry solve" << std::endl;
+        }
+    }
 }
 
 // utility to copy in data from phi_old and/or phi_new into another multifab
