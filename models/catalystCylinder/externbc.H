@@ -20,10 +20,8 @@ void externalbc(const amrex::Real x[AMREX_SPACEDIM],
         const amrex::Real time,
         amrex::GeometryData const& geomdata)
 {
-    if(idir==0)
-    {
         Real spec[NUM_SPECIES]={zeroval};
-        if(sgn>0)
+        if(idir==0 && sgn>0)
         {
             s_ext[DENS_INDX]=mflo_user_funcs::rho0;
             s_ext[PRES_INDX]=s_int[PRES_INDX];
@@ -31,8 +29,9 @@ void externalbc(const amrex::Real x[AMREX_SPACEDIM],
             s_ext[VELY_INDX]=zeroval;
             s_ext[VELZ_INDX]=zeroval;
 
-            spec[AIR_ID] = (s_ext[DENS_INDX]-mflo_user_funcs::Aconc*mflo_species::molwts[A_ID])/mflo_species::molwts[AIR_ID];
-            spec[A_ID]   = mflo_user_funcs::Aconc;
+            spec[AIR_ID] = (s_ext[DENS_INDX]-mflo_user_funcs::Aconc_inlet
+                            *mflo_species::molwts[A_ID])/mflo_species::molwts[AIR_ID];
+            spec[A_ID]   = mflo_user_funcs::Aconc_inlet;
             spec[B_ID]   = zeroval;
             spec[S_ID]   = zeroval;
 
@@ -71,6 +70,5 @@ void externalbc(const amrex::Real x[AMREX_SPACEDIM],
             s_ext[FLO_NVARS+sp]=spec[sp];
         }
         s_ext[VFRAC_INDX] = s_int[VFRAC_INDX];
-    }
 }
 #endif

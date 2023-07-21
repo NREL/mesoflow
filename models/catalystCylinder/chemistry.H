@@ -22,7 +22,7 @@ namespace mflo_chem_reactions
             {
                 specsource(i,j,k,FLO_NVARS+sp) = zeroval;
             }
-            amrex::Real kreac=5.0;
+            amrex::Real kreac=20.0;
             amrex::Real reactrate=kreac*phi(i,j,k,FLO_NVARS+S_ID)*phi(i,j,k,FLO_NVARS+A_ID);
             specsource(i,j,k,FLO_NVARS+A_ID)-=reactrate;
             specsource(i,j,k,FLO_NVARS+B_ID)+=reactrate;

@@ -11,11 +11,19 @@ def _magvort(field, data):
             +(data["vely_gradient_x"]-data["velx_gradient_y"])**2))
     
 fn_pattern= argv[1]
-fn_list = glob.glob(fn_pattern)
-fn_list.sort()
+fn_list=[]
+try:
+    fn_list = sorted(glob.glob(fn_pattern), key=lambda f: int(f.split("plt")[1]))
+except:
+    if(fn_list==[]):
+        print("using file of plotfiles..")
+        infile=open(argv[1],'r')
+        for line in infile:
+            fn_list.append(line.split()[0])
+        infile.close()
 print(fn_list)
 set_minmax=False
-if(len(argv)>3):
+if(len(argv)>2):
     minval=float(argv[2])
     maxval=float(argv[3])
     set_minmax=True
