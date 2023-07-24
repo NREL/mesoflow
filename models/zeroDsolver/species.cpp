@@ -43,12 +43,19 @@ namespace mflo_species
                 rxnarray[i][j]=zeroval;
             }
         }
-        //Reaction0
+        //Reaction0 CH4 + O2 --> CH3 + HO2
         rxnarray[0][CH4_ID] = -1.0;
         rxnarray[0][O2_ID] = -1.0;
         rxnarray[0][HO2_ID] = 1.0;
         rxnarray[0][CH3_ID] = 1.0;
         rateconsts[0] = 0.00124;
+
+        //Reaction1 CH4 + O2 <-- CH3 + HO2
+        rxnarray[1][CH4_ID] = 1.0;
+        rxnarray[1][O2_ID] = 1.0;
+        rxnarray[1][HO2_ID] = -1.0;
+        rxnarray[1][CH3_ID] = -1.0;
+        rateconsts[1] = 10731883.59;
 
     }    
     void close()
