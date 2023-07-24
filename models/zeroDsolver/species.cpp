@@ -15,18 +15,21 @@ namespace mflo_species
         specnames[O2_ID] = "O2";
         specnames[HO2_ID] = "HO2";
         specnames[CH3_ID] = "CH3";
+        specnames[H2O2_ID] = "H2O2";
 
         //kg/mol
         molwts[CH4_ID] = 0.01604;
         molwts[O2_ID] = 0.03200;
         molwts[HO2_ID] = 0.03301;
         molwts[CH3_ID] = 0.01503;
+        molwts[H2O2_ID] = 0.034014;
 
         //gamma for each species
         gamma_spec[CH4_ID] = 1.1292790129999999;
         gamma_spec[O2_ID] = 1.311803071;
         gamma_spec[HO2_ID] = 1.210657844;
         gamma_spec[CH3_ID] = 1.1628463740000001;
+        gamma_spec[H2O2_ID] = 1.149667264;
         //background gas
         gamma_spec[NUM_GAS_SPECIES]  = GAMMA_BG_GAS;
 
@@ -56,6 +59,20 @@ namespace mflo_species
         rxnarray[1][HO2_ID] = -1.0;
         rxnarray[1][CH3_ID] = -1.0;
         rateconsts[1] = 10731883.59;
+
+        //Reaction2 CH4 + HO2 --> CH3 +H2O2
+        rxnarray[2][CH4_ID] = -1.0;
+        rxnarray[2][HO2_ID] = -1.0;
+        rxnarray[2][CH3_ID] = 1.0;
+        rxnarray[2][H2O2_ID] = 1.0;
+        rateconsts[2] = 328.7371306;
+
+        //Reaction3 CH4 + HO2 <-- CH3 +H2O2
+        rxnarray[3][CH4_ID] = 1.0;
+        rxnarray[3][HO2_ID] = 1.0;
+        rxnarray[3][CH3_ID] = -1.0;
+        rxnarray[3][H2O2_ID] = -1.0;
+        rateconsts[3] = 247607.5485;
 
     }    
     void close()
