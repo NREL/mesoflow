@@ -21,12 +21,15 @@ see Crowley et al.,Frontiers in Energy Research 10 (https://www.frontiersin.org/
 
 
 # Build instructions
-
+* Mesoflow uses submodules, please clone with git clone --recursive https://github.com/NREL/mesoflow.git (or update your existing clone with git submodule update --init --recursive)
 * gcc and an MPI library (openMPI/MPICH) for CPU builds. cuda-11.0 is also required for GPU builds
-* This solver depends on the AMReX library - clone from https://github.com/AMReX-Codes/amrex
-* Set AMREX_HOME to the path of amrex (e.g. $export AMREX_HOME=/path/to/amrex
+* This tool depends on the AMReX library - which is included as a submodule
 * go to any of the test cases in tests or model folder (e.g. cd models/blockCatalyst1d)
 * build executable using the GNUMakefile - do $make for CPU build or do $make USE_CUDA=TRUE for GPU build
+* To enable implicit chemistry, this solver also requires SUNDIALS, please download the latest release (SUNDIALS v xyz)
+from (https://computing.llnl.gov/projects/sundials/sundials-software) and follow the installation instructions in
+(https://sundials.readthedocs.io/en/latest/Install_link.html). Compile with $make USE_SUNDIALS=TRUE after setting
+the appropriate installation path as SUNDIALS_ROOT in either the shell or in the GNUmakefile.
 
 # Run instructions
 
