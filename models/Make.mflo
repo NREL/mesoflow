@@ -1,4 +1,4 @@
-AMREX_HOME ?= ../../../amrex
+AMREX_HOME ?= ../../amrex
 MFLO_HOME  ?= ../../../mesoflow
 
 TOP := $(MFLO_HOME)

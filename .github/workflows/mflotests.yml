@@ -17,7 +17,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends \
         build-essential g++ gfortran libopenmpi-dev openmpi-bin
-        git clone https://github.com/AMReX-Codes/amrex
     - name: Build Regression
       working-directory: ./tests/Cartesian
       run: |
@@ -82,7 +81,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ninja-build \
               cuda-command-line-tools-${{matrix.cuda_pkg}} cuda-compiler-${{matrix.cuda_pkg}} cuda-minimal-build-${{matrix.cuda_pkg}} cuda-nvml-dev-${{matrix.cuda_pkg}} cuda-nvtx-${{matrix.cuda_pkg}} ${{matrix.cuda_extra}}
-          git clone https://github.com/AMReX-Codes/amrex
       - name: Configure and build
         working-directory: ./tests/Cartesian
         run: |
