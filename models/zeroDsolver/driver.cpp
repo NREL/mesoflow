@@ -44,7 +44,9 @@ void compute_spec_source(amrex::Real spec[NUM_SPECIES],
         }
 	// keep primary vapor concentration constant, simulating continuous feed
 	// comment out if you don't want continuous feed of primary vapor
-        specsource[H2_ID] = 0.0;
+        //specsource[Ar_ID] = 0.0;
+        specsource[CH4_ID] = 0.0;
+        specsource[O2_ID] = 0.0;
     }
 
     /*for(int sp=0;sp<NUM_SPECIES;sp++)
@@ -74,8 +76,10 @@ int main(int argc,char *argv[])
         amrex::Real specsource[NUM_SPECIES]={0.0};
 
         //initial conditions
-        spec_new[H2_ID]=10.0; // primary vapor concentration
-        spec_new[S1_ID]=1000.0; // active site concentration
+        //spec_new[Ar_ID]=35.7; // primary vapor concentration
+        spec_new[CH4_ID]=7.52; // primary vapor concentration
+        spec_new[O2_ID]=3.76; // primary vapor concentration
+        //spec_new[S1_ID]=1000.0; // active site concentration
         
 	// This appends to quants.dat if it exists
 	//

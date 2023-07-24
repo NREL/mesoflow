@@ -11,17 +11,22 @@ namespace mflo_species
 
     void init()
     {
-        specnames[H2_ID] = "H2";
-        specnames[H2ADS1_ID] = "H2ADS1";
-        specnames[S1_ID] = "S1";
+        specnames[CH4_ID] = "CH4";
+        specnames[O2_ID] = "O2";
+        specnames[HO2_ID] = "HO2";
+        specnames[CH3_ID] = "CH3";
 
         //kg/mol
-        molwts[H2_ID] = 0.00400;
-        molwts[H2ADS1_ID] = 0.00400;
-        molwts[S1_ID] = 1.00000;
+        molwts[CH4_ID] = 0.01604;
+        molwts[O2_ID] = 0.03200;
+        molwts[HO2_ID] = 0.03301;
+        molwts[CH3_ID] = 0.01503;
 
         //gamma for each species
-        gamma_spec[H2_ID] = 1.4;
+        gamma_spec[CH4_ID] = 1.1292790129999999;
+        gamma_spec[O2_ID] = 1.311803071;
+        gamma_spec[HO2_ID] = 1.210657844;
+        gamma_spec[CH3_ID] = 1.1628463740000001;
         //background gas
         gamma_spec[NUM_GAS_SPECIES]  = GAMMA_BG_GAS;
 
@@ -31,8 +36,6 @@ namespace mflo_species
         {
             advect_flags[sp]=one;
         }
-        advect_flags[H2ADS1_ID] = zeroval;
-        advect_flags[S1_ID] = zeroval;
         for(int i=0;i<NUM_REACTIONS;i++)
         {
             for(int j=0;j<NUM_SPECIES;j++)
@@ -41,16 +44,11 @@ namespace mflo_species
             }
         }
         //Reaction0
-        rxnarray[0][H2_ID] = -1;
-        rxnarray[0][H2ADS1_ID] = 1;
-        rxnarray[0][S1_ID] = -1;
-        rateconsts[0] = 2.00000;
-
-        //Reaction1
-        rxnarray[1][H2_ID] = 1;
-        rxnarray[1][H2ADS1_ID] = -1;
-        rxnarray[1][S1_ID] = 1;
-        rateconsts[1] = 1.50000;
+        rxnarray[0][CH4_ID] = -1.0;
+        rxnarray[0][O2_ID] = -1.0;
+        rxnarray[0][HO2_ID] = 1.0;
+        rxnarray[0][CH3_ID] = 1.0;
+        rateconsts[0] = 0.00124;
 
     }    
     void close()
