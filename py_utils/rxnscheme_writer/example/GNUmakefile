@@ -1,5 +1,5 @@
-AMREX_HOME ?= ../../../../..
 MFLO_HOME ?= ../../../../..
+AMREX_HOME ?= $(MFLO_HOME)/submods/amrex
 
 PRECISION  = DOUBLE
 PROFILE    = FALSE
