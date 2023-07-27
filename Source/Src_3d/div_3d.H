@@ -44,6 +44,8 @@ void update_residual(
     
     if(dsdt(i,j,k,n)!=dsdt(i,j,k,n))
     {
+        amrex::AllPrint()<<"NaN detected for i,j,k,var,vfrac:"<<
+        i<<"\t"<<j<<"\t"<<k<<"\t"<<n<<"\t"<<phi(i,j,k,VFRAC_INDX)<<"\n";
         amrex::Abort("NaN detected in dsdt\n");
     }
 }
