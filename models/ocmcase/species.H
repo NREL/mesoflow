@@ -10,9 +10,9 @@
 #include <AMReX_Box.H>
 #include <mflo_constants.H>
 
-#define NUM_SPECIES 25
-#define Ar_ID 0
-#define CH4_ID 1
+#define NUM_SPECIES 33
+#define CH4_ID 0
+#define Ar_ID 1
 #define C2H6_ID 2
 #define C2H4_ID 3
 #define C2H2_ID 4
@@ -36,14 +36,22 @@
 #define CHO_ID 22
 #define H_ID 23
 #define S1_ID 24
+#define OADS1_ID 25
+#define OHADS1_ID 26
+#define H2OADS1_ID 27
+#define CH3OADS1_ID 28
+#define CH2OADS1_ID 29
+#define CHOADS1_ID 30
+#define COADS1_ID 31
+#define CO2ADS1_ID 32
 
 #define NUM_GAS_SPECIES 24
-#define FIRST_SPEC Ar_ID
+#define FIRST_SPEC CH4_ID
 
 #define BG_GAS_MWT 0.04
 #define GAMMA_BG_GAS 1.67
 
-#define NUM_REACTIONS 78
+#define NUM_REACTIONS 105
 
 namespace mflo_species
 {

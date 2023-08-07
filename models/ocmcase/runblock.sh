@@ -6,7 +6,7 @@
 #SBATCH --qos=regular
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=lch224@lehigh.edu
-#SBATCH --job-name="testMesoflow"
+#SBATCH --job-name="blockOCM"
 #SBATCH --output="Job%j.%N.out" # Write Standard Output and Error
 
 

@@ -1,3 +1,11 @@
 1rxn_forward
 1rxn_forward_and_back
 2rxns
+3rxns
+data
+1e-12dt
+1e-10dt
+quants.dat.0
+zero3d.gnu.ex
+tmp_build_dir
+Job10208150.sol-c201.out

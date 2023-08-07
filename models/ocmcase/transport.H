@@ -26,6 +26,14 @@ namespace mflo_chem_transport
                 dcoeff(i,j,k,sp) = (one-vfrac)*solid_dif+vfrac*fluid_dif;
             }
             dcoeff(i,j,k,S1_ID)=zeroval;
+            dcoeff(i,j,k,OADS1_ID)=zeroval;
+            dcoeff(i,j,k,OHADS1_ID)=zeroval;
+            dcoeff(i,j,k,H2OADS1_ID)=zeroval;
+            dcoeff(i,j,k,CH3OADS1_ID)=zeroval;
+            dcoeff(i,j,k,CH2OADS1_ID)=zeroval;
+            dcoeff(i,j,k,CHOADS1_ID)=zeroval;
+            dcoeff(i,j,k,COADS1_ID)=zeroval;
+            dcoeff(i,j,k,CO2ADS1_ID)=zeroval;
        }
 }
 #endif

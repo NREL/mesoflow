@@ -51,5 +51,5 @@ amr.chk_int  = -1       # number of timesteps between checkpoint files
 
 problem.catalyst_loc=0.008
 problem.free_stream_vel=1.0
-problem.chemistry_on=0
+problem.chemistry_on=1
 problem.siteconc=1.0

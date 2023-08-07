@@ -125,7 +125,7 @@ namespace mflo_thermo
 
             //find background gas concentration
             Real sum_ciMi = zeroval;
-            for(int sp=Ar_ID;sp<NUM_GAS_SPECIES;sp++)
+            for(int sp=CH4_ID;sp<NUM_GAS_SPECIES;sp++)
             {
                 sum_ciMi += spec[sp]*mflo_species::molwts[sp];   
             }
