@@ -1,0 +1,32 @@
+|-----------------|xxxxxxxx|
+  gas phase       catalyst
+<-----l1--------->|
+<-----------l------------->|
+
+species: s1 and s2
+reaction at catalyst: s1+site => s2+site
+reaction rate=-ds1/dt=ds2/dt= k s1 site
+
+There is advection and diffusion in gas phase:
+
+At steady-state for s1:
+
+v ds1/dx = D d2s1/dx2 (x<l1)
+D d2s1/dx2 - k s1 = 0 (x>l1)
+
+flux continuity at interface:
+{v s1 - D ds1/dx}|(l1-) = {-D ds1/dx}|(l1+)
+
+boundary conditions:
+
+s1=1 at x=0
+s1=0 at x=l1
+
+ds2/dx=0 at x=0
+ds2/dx=0 at x=l1
+
+
+The solution can be analytically obtained
+by solving the steady state equation for 
+the piecewise domains and imposing the boundary 
+and interface conditions

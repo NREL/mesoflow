@@ -5,6 +5,8 @@ TOP := $(MFLO_HOME)
 
 EBASE := mesoflow
 
+BL_NO_FORT=TRUE
+
 ifeq ($(USE_SEC_ORDER_FLUX), TRUE)
     DEFINES += -DSEC_ORDER_FLUX
 endif
