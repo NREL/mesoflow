@@ -10,18 +10,20 @@
 #include <AMReX_Box.H>
 #include <mflo_constants.H>
 
-#define NUM_SPECIES 3
+#define NUM_SPECIES 5
 #define CH4_ID 0
 #define CH3_ID 1
 #define H_ID 2
+#define O2_ID 3
+#define HO2_ID 4
 
-#define NUM_GAS_SPECIES 3
+#define NUM_GAS_SPECIES 5
 #define FIRST_SPEC CH4_ID
 
 #define BG_GAS_MWT 0.04
 #define GAMMA_BG_GAS 1.67
 
-#define NUM_REACTIONS 105
+#define NUM_REACTIONS 2
 
 namespace mflo_species
 {

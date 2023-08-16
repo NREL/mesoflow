@@ -78,7 +78,7 @@ int main(int argc,char *argv[])
         //initial conditions
         //spec_new[Ar_ID]=35.7; // primary vapor concentration
         spec_new[CH4_ID]=7.52; // primary vapor concentration
-        //spec_new[O2_ID]=3.76; // primary vapor concentration
+        spec_new[O2_ID]=3.76; // primary vapor concentration
         //spec_new[S1_ID]= 1000.0;//0.0000114; // active site concentration
         
 	// This appends to quants.dat if it exists

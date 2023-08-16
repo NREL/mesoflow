@@ -1,4 +1,5 @@
 data
 quants.dat.0
-zero3d.gnu.ex
+zerod3d.gnu.ex
+zerod3d.llvm.ex
 tmp_build_dir
