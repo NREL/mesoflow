@@ -4,16 +4,16 @@ PROFILE    = FALSE
 DEBUG      = TRUE
 DEBUG      = FALSE
 
-DIM       = 3
+DIM        = 3
 
-COMP	   = gnu
+COMP       = gnu
 
 USE_MPI    = TRUE
-USE_OMP    = FALSE 
+USE_OMP    = FALSE
 USE_CUDA   = FALSE
 
-Bpack   := ./Make.package 
-Blocs   := . 
+Bpack   := ./Make.package
+Blocs   := .
 
 include ../Make.mflo
 
@@ -21,6 +21,7 @@ ifeq ($(USE_SUNDIALS),TRUE)
 # NOTE: SUNDIALS_ROOT must point to the directory where sundials is installed
 # A good check is to see if $(SUNDIALS_ROOT)/lib has a bunch of libsundials_ files
 # To run with sundials, enabled, please compile with USE_SUNDIALS = TRUE
+
 SUNDIALS_ROOT ?= /home/lch224/sundials/INSTDIR
 SUNDIALS_LIB_DIR ?= $(SUNDIALS_ROOT)/lib
 USE_CVODE_LIBS ?= TRUE
@@ -28,6 +29,8 @@ USE_ARKODE_LIBS ?= TRUE
 DEFINES += -DAMREX_USE_SUNDIALS
 INCLUDE_LOCATIONS += $(SUNDIALS_ROOT)/include
 LIBRARY_LOCATIONS += $(SUNDIALS_LIB_DIR)
+
+
 LIBRARIES += -L$(SUNDIALS_LIB_DIR) -lsundials_cvode
 LIBRARIES += -L$(SUNDIALS_LIB_DIR) -lsundials_arkode
 LIBRARIES += -L$(SUNDIALS_LIB_DIR) -lsundials_nvecmanyvector

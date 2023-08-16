@@ -18,7 +18,8 @@ namespace mflo_user_funcs
     extern AMREX_GPU_DEVICE_MANAGED Real fs_vel;
     extern AMREX_GPU_DEVICE_MANAGED Real rho0;
     extern AMREX_GPU_DEVICE_MANAGED Real p0;
-    extern AMREX_GPU_DEVICE_MANAGED Real Aconc;
+    extern AMREX_GPU_DEVICE_MANAGED Real Aconc_inlet;
+    extern AMREX_GPU_DEVICE_MANAGED Real Aconc_initial;
     extern AMREX_GPU_DEVICE_MANAGED Real siteconc;
 
     void initialize_problem();

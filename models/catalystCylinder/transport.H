@@ -20,9 +20,9 @@ namespace mflo_chem_transport
             Real gasfrac=phi(i,j,k,VFRAC_INDX);
             Real solfrac=one-gasfrac;
            
-            dcoeff(i,j,k,AIR_ID)=1e-5;
-            dcoeff(i,j,k,A_ID)=1e-5;
-            dcoeff(i,j,k,B_ID)=1e-5;
+            dcoeff(i,j,k,AIR_ID)=1e-5*gasfrac+1e-6*solfrac;
+            dcoeff(i,j,k,A_ID)=1e-5*gasfrac+1e-6*solfrac;
+            dcoeff(i,j,k,B_ID)=1e-4*gasfrac+1e-5*solfrac;
             dcoeff(i,j,k,S_ID)=0.0;
         }
 }

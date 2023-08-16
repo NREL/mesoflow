@@ -53,6 +53,7 @@ amr.plot_int   = 10000     # number of timesteps between plot files
 amr.chk_file = chk      # root name of checkpoint file
 amr.chk_int  = -1       # number of timesteps between checkpoint files
 
+
 user.spec_S1=1.5
 
 # INTEGRATION options (for chemistry)

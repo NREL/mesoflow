@@ -16,7 +16,7 @@ namespace mflo_species
         //kg/mol
         molwts[AIR_ID]  =0.0289;
         molwts[A_ID]=0.044;
-        molwts[B_ID]=0.028;
+        molwts[B_ID]=0.044;
         molwts[S_ID]=0.001;
 
         advect_flags[S_ID]=0;

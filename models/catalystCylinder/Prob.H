@@ -75,8 +75,8 @@ void initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomda
                 phi(i,j,k,DENS_INDX) = mflo_user_funcs::rho0;
 
                 spec[AIR_ID] = (phi(i,j,k,DENS_INDX)
-                -mflo_user_funcs::Aconc*mflo_species::molwts[A_ID])/mflo_species::molwts[AIR_ID];
-                spec[A_ID] = mflo_user_funcs::Aconc;
+                -mflo_user_funcs::Aconc_initial*mflo_species::molwts[A_ID])/mflo_species::molwts[AIR_ID];
+                spec[A_ID] = mflo_user_funcs::Aconc_initial;
                 spec[B_ID] = zeroval;
                 spec[S_ID] = (1.0-vfrac)*mflo_user_funcs::siteconc;
                 dummyspec[AIR_ID]=spec[AIR_ID];

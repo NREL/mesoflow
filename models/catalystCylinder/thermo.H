@@ -47,10 +47,6 @@ namespace mflo_thermo
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
         Real get_p_from_rec(Real rhoe,Real rho,Real spec[NUM_SPECIES])
         {
-            //not using coke and sites
-            //these are only present in solid
-
-            //include background gas also
             Real gamma_spec[NUM_GAS_SPECIES]={zeroval};
             Real cv_spec[NUM_GAS_SPECIES]={zeroval};
             Real T;
