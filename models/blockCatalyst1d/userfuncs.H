@@ -15,6 +15,7 @@ using namespace amrex;
 namespace mflo_user_funcs
 {
     extern AMREX_GPU_DEVICE_MANAGED Real iboffset;
+    extern AMREX_GPU_DEVICE_MANAGED Real specS1;
     void initialize_problem();
 
     AMREX_GPU_DEVICE AMREX_INLINE

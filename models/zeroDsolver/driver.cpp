@@ -44,9 +44,9 @@ void compute_spec_source(amrex::Real spec[NUM_SPECIES],
         }
 	// keep primary vapor concentration constant, simulating continuous feed
 	// comment out if you don't want continuous feed of primary vapor
-        specsource[Ar_ID] = 0.0;
-        specsource[CH4_ID] = 0.0;
-        specsource[O2_ID] = 0.0;
+     //   specsource[Ar_ID] = 0.0;
+     //   specsource[CH4_ID] = 0.0;
+     //   specsource[O2_ID] = 0.0;
     }
 
     /*for(int sp=0;sp<NUM_SPECIES;sp++)
@@ -61,7 +61,7 @@ int main(int argc,char *argv[])
     {
         mflo_species::init();
         amrex::Real finaltime=1.0;
-        amrex::Real dt=1e-9;
+        amrex::Real dt=1e-8;
         amrex::Real output_dt=1e-4;
         amrex::Real curtime=0.0;
         amrex::Real output_time=0.0;
@@ -76,7 +76,7 @@ int main(int argc,char *argv[])
         amrex::Real specsource[NUM_SPECIES]={0.0};
 
         //initial conditions
-        spec_new[Ar_ID]=35.7; // primary vapor concentration
+        //spec_new[Ar_ID]=35.7; // primary vapor concentration
         spec_new[CH4_ID]=7.52; // primary vapor concentration
         spec_new[O2_ID]=3.76; // primary vapor concentration
         //spec_new[S1_ID]= 1000.0;//0.0000114; // active site concentration

@@ -52,3 +52,12 @@ amr.plot_int   = 10000     # number of timesteps between plot files
 # CHECKPOINT
 amr.chk_file = chk      # root name of checkpoint file
 amr.chk_int  = -1       # number of timesteps between checkpoint files
+
+user.spec_S1=1.5
+
+# INTEGRATION options (for chemistry)
+## Uncomment below two lines to enable implicit chemistry
+integration.type = SUNDIALS
+integration.sundials.strategy = CVODE
+## Note that this requires a working sundials installation and
+## the code must be compiled with USE_SUNDIALS=TRUE, see GNUmakefile for additional info

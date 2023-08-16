@@ -130,6 +130,14 @@ namespace mflo_species
                 rxnarray[i][j]=zeroval;
             }
         }
+        
+        //Reaction0
+        rxnarray[0][CH4_ID] = -1;
+        rxnarray[0][H_ID] = 1;
+        rxnarray[0][CH3_ID] = 1;
+        rateconsts[0] = 10;
+        
+        /**
         //Reaction0
         rxnarray[0][CH4_ID] = -1;
         rxnarray[0][O2_ID] = -1;
@@ -649,7 +657,7 @@ namespace mflo_species
         rxnarray[77][C2H5_ID] = -1;
         rxnarray[77][H_ID] = -1;
         rateconsts[77] = 1.61e11;
-/*
+
         //Reaction78
         rxnarray[78][O2_ID] = -1;
         rxnarray[78][S1_ID] = -2;

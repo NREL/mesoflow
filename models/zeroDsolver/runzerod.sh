@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --partition=engc
-#SBATCH --time=10:00:00 #Wall Time Limit
+#SBATCH --time=2:00:00 #Wall Time Limit
 #SBATCH --ntasks-per-node=1 #CPU Count
 #SBATCH --qos=regular
 #SBATCH --mail-type=ALL
