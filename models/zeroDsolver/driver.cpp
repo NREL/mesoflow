@@ -44,9 +44,15 @@ void compute_spec_source(amrex::Real spec[NUM_SPECIES],
         }
 	// keep primary vapor concentration constant, simulating continuous feed
 	// comment out if you don't want continuous feed of primary vapor
+<<<<<<< HEAD
      //   specsource[Ar_ID] = 0.0;
      //   specsource[CH4_ID] = 0.0;
      //   specsource[O2_ID] = 0.0;
+=======
+        //specsource[Ar_ID] = 0.0;
+        //specsource[CH4_ID] = 0.0;
+        //specsource[O2_ID] = 0.0;
+>>>>>>> f2b75d105241e14be772bb8470b5c5cc53e0e625
     }
 
     /*for(int sp=0;sp<NUM_SPECIES;sp++)

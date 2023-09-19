@@ -12,99 +12,25 @@ namespace mflo_species
     void init()
     {
         specnames[CH4_ID] = "CH4";
-        specnames[Ar_ID] = "Ar";
-        specnames[C2H6_ID] = "C2H6";
-        specnames[C2H4_ID] = "C2H4";
-        specnames[C2H2_ID] = "C2H2";
-        specnames[C3H8_ID] = "C3H8";
-        specnames[C3H6_ID] = "C3H6";
-        specnames[O2_ID] = "O2";
-        specnames[H2O_ID] = "H2O";
-        specnames[H2O2_ID] = "H2O2";
-        specnames[CH2O_ID] = "CH2O";
-        specnames[CO_ID] = "CO";
-        specnames[CO2_ID] = "CO2";
-        specnames[H2_ID] = "H2";
-        specnames[HO2_ID] = "HO2";
-        specnames[O_ID] = "O";
-        specnames[OH_ID] = "OH";
         specnames[CH3_ID] = "CH3";
-        specnames[C2H5_ID] = "C2H5";
-        specnames[C2H3_ID] = "C2H3";
-        specnames[C3H7_ID] = "C3H7";
-        specnames[CH3O_ID] = "CH3O";
-        specnames[CHO_ID] = "CHO";
         specnames[H_ID] = "H";
-        specnames[S1_ID] = "S1";
-        specnames[OADS1_ID] = "OADS1";
-        specnames[OHADS1_ID] = "OHADS1";
-        specnames[H2OADS1_ID] = "H2OADS1";
-        specnames[CH3OADS1_ID] = "CH3OADS1";
-        specnames[CH2OADS1_ID] = "CH2OADS1";
-        specnames[CHOADS1_ID] = "CHOADS1";
-        specnames[COADS1_ID] = "COADS1";
-        specnames[CO2ADS1_ID] = "CO2ADS1";
+        specnames[O2_ID] = "O2";
+        specnames[HO2_ID] = "HO2";
 
         //kg/mol
         molwts[CH4_ID] = 0.01604;
-        molwts[Ar_ID] = 0.03995;
-        molwts[C2H6_ID] = 0.03007;
-        molwts[C2H4_ID] = 0.02805;
-        molwts[C2H2_ID] = 0.02604;
-        molwts[C3H8_ID] = 0.04410;
-        molwts[C3H6_ID] = 0.04208;
-        molwts[O2_ID] = 0.03200;
-        molwts[H2O_ID] = 0.01801;
-        molwts[H2O2_ID] = 0.03401;
-        molwts[CH2O_ID] = 0.03003;
-        molwts[CO_ID] = 0.02801;
-        molwts[CO2_ID] = 0.04401;
-        molwts[H2_ID] = 0.00202;
-        molwts[HO2_ID] = 0.03301;
-        molwts[O_ID] = 0.01600;
-        molwts[OH_ID] = 0.01701;
         molwts[CH3_ID] = 0.01503;
-        molwts[C2H5_ID] = 0.02906;
-        molwts[C2H3_ID] = 0.02705;
-        molwts[C3H7_ID] = 0.04309;
-        molwts[CH3O_ID] = 0.03103;
-        molwts[CHO_ID] = 0.02902;
         molwts[H_ID] = 0.00101;
-        molwts[S1_ID] = 0.00000;
-        molwts[OADS1_ID] = 0.01600;
-        molwts[OHADS1_ID] = 0.01701;
-        molwts[H2OADS1_ID] = 0.01801;
-        molwts[CH3OADS1_ID] = 0.03103;
-        molwts[CH2OADS1_ID] = 0.03003;
-        molwts[CHOADS1_ID] = 0.02902;
-        molwts[COADS1_ID] = 0.02801;
-        molwts[CO2ADS1_ID] = 0.04401;
+        molwts[O2_ID] = 0.03200;
+        molwts[HO2_ID] = 0.03301;
 
         //gamma for each species
         gamma_spec[CH4_ID] = 1.13;
-        gamma_spec[Ar_ID] = 1.60;
-        gamma_spec[C2H6_ID] = 1.07;
-        gamma_spec[C2H4_ID] = 1.10;
-        gamma_spec[C2H2_ID] = 1.14;
-        gamma_spec[C3H8_ID] = 1.05;
-        gamma_spec[C3H6_ID] = 1.06;
-        gamma_spec[O2_ID] = 1.31;
-        gamma_spec[H2O_ID] = 1.25;
-        gamma_spec[H2O2_ID] = 1.15;
-        gamma_spec[CH2O_ID] = 1.15;
-        gamma_spec[CO_ID] = 1.33;
-        gamma_spec[CO2_ID] = 1.06;
-        gamma_spec[H2_ID] = 1.00;
-        gamma_spec[HO2_ID] = 1.21;
-        gamma_spec[O_ID] = 1.66;
-        gamma_spec[OH_ID] = 1.37;
         gamma_spec[CH3_ID] = 1.16;
-        gamma_spec[C2H5_ID] = 1.08;
-        gamma_spec[C2H3_ID] = 1.12;
-        gamma_spec[C3H7_ID] = 1.05;
-        gamma_spec[CH3O_ID] = 1.12;
-        gamma_spec[CHO_ID] = 1.21;
         gamma_spec[H_ID] = 1.67;
+        gamma_spec[O2_ID] = 1.31;
+        gamma_spec[HO2_ID] = 1.21;
+
         //background gas
         gamma_spec[NUM_GAS_SPECIES]  = GAMMA_BG_GAS;
 
@@ -114,15 +40,7 @@ namespace mflo_species
         {
             advect_flags[sp]=one;
         }
-        advect_flags[S1_ID] = zeroval;
-        advect_flags[OADS1_ID] = zeroval;
-        advect_flags[OHADS1_ID] = zeroval;
-        advect_flags[H2OADS1_ID] = zeroval;
-        advect_flags[CH3OADS1_ID] = zeroval;
-        advect_flags[CH2OADS1_ID] = zeroval;
-        advect_flags[CHOADS1_ID] = zeroval;
-        advect_flags[COADS1_ID] = zeroval;
-        advect_flags[CO2ADS1_ID] = zeroval;
+       
         for(int i=0;i<NUM_REACTIONS;i++)
         {
             for(int j=0;j<NUM_SPECIES;j++)
@@ -141,7 +59,6 @@ namespace mflo_species
         //Reaction0
         rxnarray[0][CH4_ID] = -1;
         rxnarray[0][O2_ID] = -1;
-        rxnarray[0][HO2_ID] = 1;
         rxnarray[0][CH3_ID] = 1;
         rateconsts[0] = 1.24e-03;
 
