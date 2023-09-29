@@ -1,4 +1,4 @@
 [submodule "amrex"]
 	path = submods/amrex
-	url = https://github.com/ndeak/amrex.git
-	branch = cvode
+	url = https://github.com/AMReX-Codes/amrex.git
+	branch = development
