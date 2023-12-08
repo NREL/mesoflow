@@ -31,8 +31,8 @@ void externalbc(const amrex::Real x[AMREX_SPACEDIM],
             Real velmag=sqrt( s_int[VELX_INDX]*s_int[VELX_INDX]
                              + s_int[VELY_INDX]*s_int[VELY_INDX]
                              + s_int[VELZ_INDX]*s_int[VELZ_INDX] );
-            s_ext[VELX_INDX] = velmag;
-            s_ext[VELY_INDX] = zeroval;
+            s_ext[VELX_INDX] = zeroval;
+            s_ext[VELY_INDX] = velmag;
             s_ext[VELZ_INDX] = zeroval;
             for(int sp=0;sp<NUM_SPECIES;sp++)
             {
