@@ -67,11 +67,6 @@ mflo::mflo()
     phi_new.resize(nlevs_max);
     phi_old.resize(nlevs_max);
 
-    amrex::Vector<int> bc_lo{BCType::foextrap, BCType::foextrap,
-                             BCType::foextrap};
-    amrex::Vector<int> bc_hi{BCType::foextrap, BCType::foextrap,
-                             BCType::foextrap};
-
     ParmParse pp("mflo");
     pp.queryarr("lo_bc", bc_lo, 0, AMREX_SPACEDIM);
     pp.queryarr("hi_bc", bc_hi, 0, AMREX_SPACEDIM);

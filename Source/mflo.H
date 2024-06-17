@@ -125,6 +125,13 @@ public:
     void update_cutcell_data(int lev, const int num_grow,
     MultiFab& Sborder,Real time,Real dt);
     void clip_neg_speciesconc(int lev);
+    
+    amrex::Vector<int> bc_lo{BCType::foextrap, BCType::foextrap,
+                             BCType::foextrap};
+    amrex::Vector<int> bc_hi{BCType::foextrap, BCType::foextrap,
+                             BCType::foextrap};
+
+    void solve_potential(Real current_time, Vector<MultiFab>& Sborder)
 
 private:
     ////////////////

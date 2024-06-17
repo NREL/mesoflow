@@ -28,7 +28,8 @@
 #define PRES_INDX 9
 #define TEMP_INDX 10
 #define VFRAC_INDX 11
-#define FLO_NVARS 12
+#define POT_INDX 12
+#define FLO_NVARS (POT_INDX+1)
 #define TOTAL_NVARS FLO_NVARS+NUM_SPECIES
 
 #define VISC_INDX 0
