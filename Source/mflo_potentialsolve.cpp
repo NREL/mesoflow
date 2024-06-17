@@ -9,7 +9,7 @@
 #include <mflo.H>
 #include <AMReX_MLABecLaplacian.H>
 
-void mflo::solve_potential(Real current_time, Vector<MultiFab>& Sborder)
+void mflo::solve_potential(Real current_time)
 {
     BL_PROFILE("mflo::solve_potential()");
 
@@ -114,11 +114,13 @@ void mflo::solve_potential(Real current_time, Vector<MultiFab>& Sborder)
 
     for (int ilev = 0; ilev <= finest_level; ilev++)
     {
+        MultiFab Sborder(grids[ilev], dmap[ilev], phi_new[ilev].nComp(), num_grow);
+        FillPatch(ilev, current_time, Sborder, 0, Sborder.nComp());
         potential[ilev].setVal(0.0);
 
         // Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, 
         // int dstcomp, int numcomp, const IntVect& nghost)
-        amrex::Copy(potential[ilev], Sborder[ilev], POT_INDX, 0, 1, num_grow);
+        amrex::Copy(potential[ilev], Sborder, POT_INDX, 0, 1, num_grow);
 
         solution[ilev].setVal(0.0);
         // FIXME: for some reason copying in current soln breaks the solver...
@@ -151,20 +153,20 @@ void mflo::solve_potential(Real current_time, Vector<MultiFab>& Sborder)
 
             Real time = current_time; // for GPU capture
 
-            Array4<Real> phi_arr = Sborder[ilev].array(mfi);
+            Array4<Real> phi_arr = Sborder.array(mfi);
             Array4<Real> rhs_arr = rhs[ilev].array(mfi);
             Array4<Real> bcoeff_arr = bcoeff[ilev].array(mfi);
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-            
+
                 rhs_arr(i,j,k)=0.0;
                 mflo_user_funcs::add_potential_sources(i, j, k, phi_arr, 
                                                        rhs_arr, prob_lo, prob_hi, 
                                                        dx, time);
-                
+
                 mflo_user_funcs::potential_dcoeff(i, j, k, phi_arr, 
-                                                 bcoeff_arr, prob_lo, prob_hi, 
-                                                 dx, time);
+                                                  bcoeff_arr, prob_lo, prob_hi, 
+                                                  dx, time);
             });
         }
 
@@ -187,7 +189,7 @@ void mflo::solve_potential(Real current_time, Vector<MultiFab>& Sborder)
             auto prob_hi = geom[ilev].ProbHiArray();
             const Box& domain = geom[ilev].Domain();
 
-            Array4<Real> phi_arr = Sborder[ilev].array(mfi);
+            Array4<Real> phi_arr = Sborder.array(mfi);
             Array4<Real> bc_arr = potential[ilev].array(mfi);
 
             Array4<Real> robin_a_arr = robin_a[ilev].array(mfi);
@@ -254,12 +256,28 @@ void mflo::solve_potential(Real current_time, Vector<MultiFab>& Sborder)
 #endif
 
     mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
-
     amrex::Print()<<"Solved Potential\n";
+    
+    Vector<Array<MultiFab, AMREX_SPACEDIM>> gradsoln(finest_level+1);
+    for (int ilev = 0; ilev <= finest_level; ilev++)
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            const BoxArray& faceba = amrex::convert(grids[ilev], 
+                    IntVect::TheDimensionVector(idim));
+            gradsoln[ilev][idim].define(faceba, dmap[ilev], 1, 0);
+        }
+    }
+    mlmg.getGradSolution(GetVecOfArrOfPtrs(gradsoln));
 
     for (int ilev = 0; ilev <= finest_level; ilev++)
     {
         amrex::MultiFab::Copy(phi_new[ilev], solution[ilev], 0, POT_ID, 1, 0);
+        
+        const Array<const MultiFab*, AMREX_SPACEDIM> allgrad = {&gradsoln[ilev][0], 
+            &gradsoln[ilev][1], &gradsoln[ilev][2]};
+        average_face_to_cellcenter(phi_new[ilev], EFLDX_INDX, allgrad);
+        phi_new[ilev].mult(-1.0, EFLDX_INDX, 3);
     }
 
 

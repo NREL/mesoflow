@@ -21,6 +21,11 @@ void mflo::EvolveAMR(Real final_time, bool only_flow)
 
     for (int step = istep[0]; step < max_step && cur_time < final_time; ++step) 
     {
+        if (potential_solve == 1 && step % pot_solve_int == 0)
+        {
+            solve_potential(cur_time);
+        }
+        
         amrex::Print() << "\nCoarse STEP " << step + 1 << " starts ..."
             << std::endl;
         ComputeDt();

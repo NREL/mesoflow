@@ -131,7 +131,7 @@ public:
     amrex::Vector<int> bc_hi{BCType::foextrap, BCType::foextrap,
                              BCType::foextrap};
 
-    void solve_potential(Real current_time, Vector<MultiFab>& Sborder)
+    void solve_potential(Real current_time);
 
 private:
     ////////////////
@@ -259,6 +259,9 @@ private:
     // plotfile prefix and frequency
     std::string plot_file{"plt"};
     int plot_int = -1;
+
+    int potential_solve=0;
+    int pot_solve_int=1;
 
     // checkpoint prefix and frequency
     std::string chk_file{"chk"};
