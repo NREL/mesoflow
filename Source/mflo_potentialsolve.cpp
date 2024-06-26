@@ -8,18 +8,29 @@
 #include <AMReX_MLTensorOp.H>
 #include <mflo.H>
 #include <AMReX_MLABecLaplacian.H>
+#include <AMReX_MLMG.H>
 
 void mflo::solve_potential(Real current_time)
 {
     BL_PROFILE("mflo::solve_potential()");
-
+    
     // FIXME: add these as inputs
-    int max_coarsening_level = linsolve_max_coarsening_level;
-    int max_iter=linsolve_maxiter;
+    int max_coarsening_level=10;
+    int max_iter=200;
+    int use_hypre=0;
     Real ascalar = 1.0;
     Real bscalar = 1.0;
-    ProbParm const* localprobparm = d_prob_parm;
+    Real reltol=1e-10;
+    Real abstol=1e-10;
+    
     int linsolve_verbose=1;
+    
+    ParmParse pp("mflo.potsolve");
+    pp.query("max_coarsening_level",max_coarsening_level);
+    pp.query("max_iter",max_iter);
+    pp.query("use_hypre",use_hypre);
+    pp.query("reltol",reltol);
+    pp.query("abstol",abstol);
 
     //==================================================
     // amrex solves
@@ -34,8 +45,8 @@ void mflo::solve_potential(Real current_time)
     // note also the negative sign
     //====================================================
 
-    const Real tol_rel = linsolve_reltol;
-    const Real tol_abs = linsolve_abstol;
+    const Real tol_rel = reltol;
+    const Real tol_abs = abstol;
 #ifdef AMREX_USE_HYPRE
     if(use_hypre)
     {
@@ -92,7 +103,7 @@ void mflo::solve_potential(Real current_time)
         potential[ilev].define(grids[ilev], dmap[ilev], 1, num_grow);
         acoeff[ilev].define(grids[ilev], dmap[ilev], 1, 0);
         bcoeff[ilev].define(grids[ilev], dmap[ilev], 1, num_grow);
-        solution[ilev].define(grids[ilev], dmap[ilev], 1, 1);
+        solution[ilev].define(grids[ilev], dmap[ilev], 1, num_grow);
         rhs[ilev].define(grids[ilev], dmap[ilev], 1, 0);
 
         robin_a[ilev].define(grids[ilev], dmap[ilev], 1, 1);
@@ -104,13 +115,13 @@ void mflo::solve_potential(Real current_time)
     info.setAgglomeration(true);
     info.setConsolidation(true);
     info.setMaxCoarseningLevel(max_coarsening_level);
-    linsolve_ptr.reset(new MLABecLaplacian(Geom(0,finest_level), 
-                                           boxArray(0,finest_level), 
-                                           DistributionMap(0,finest_level), info));
+    MLABecLaplacian linsolve_obj(Geom(0,finest_level), 
+                               boxArray(0,finest_level), 
+                 DistributionMap(0,finest_level), info);
 
-    linsolve_ptr->setMaxOrder(2);
-    linsolve_ptr->setDomainBC(bc_potsolve_lo, bc_potsolve_hi);
-    linsolve_ptr->setScalars(ascalar, bscalar);
+    linsolve_obj.setMaxOrder(2);
+    linsolve_obj.setDomainBC(bc_potsolve_lo, bc_potsolve_hi);
+    linsolve_obj.setScalars(ascalar, bscalar);
 
     for (int ilev = 0; ilev <= finest_level; ilev++)
     {
@@ -123,8 +134,7 @@ void mflo::solve_potential(Real current_time)
         amrex::Copy(potential[ilev], Sborder, POT_INDX, 0, 1, num_grow);
 
         solution[ilev].setVal(0.0);
-        // FIXME: for some reason copying in current soln breaks the solver...
-        // amrex::MultiFab::Copy(solution[ilev], potential[ilev], 0, 0, 1, 0);
+        amrex::MultiFab::Copy(solution[ilev], potential[ilev], 0, 0, 1, 1);
         rhs[ilev].setVal(0.0);
         acoeff[ilev].setVal(0.0);
         bcoeff[ilev].setVal(1.0);
@@ -190,7 +200,6 @@ void mflo::solve_potential(Real current_time)
             const Box& domain = geom[ilev].Domain();
 
             Array4<Real> phi_arr = Sborder.array(mfi);
-            Array4<Real> bc_arr = potential[ilev].array(mfi);
 
             Array4<Real> robin_a_arr = robin_a[ilev].array(mfi);
             Array4<Real> robin_b_arr = robin_b[ilev].array(mfi);
@@ -208,7 +217,7 @@ void mflo::solve_potential(Real current_time)
                     amrex::ParallelFor(amrex::bdryLo(bx, idim), [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
 
                         mflo_user_funcs::potential_bc(i, j, k, idim, -1, 
-                                                      phi_arr, bc_arr, robin_a_arr, 
+                                                      phi_arr, robin_a_arr, 
                                                       robin_b_arr, robin_f_arr, 
                                                       prob_lo, prob_hi, dx, time);
                     });
@@ -217,7 +226,7 @@ void mflo::solve_potential(Real current_time)
                 {
                     amrex::ParallelFor(amrex::bdryHi(bx, idim), [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
                         mflo_user_funcs::potential_bc(i, j, k, idim, +1, 
-                                                      phi_arr, bc_arr, robin_a_arr, 
+                                                      phi_arr, robin_a_arr, 
                                                       robin_b_arr, robin_f_arr, 
                                                       prob_lo, prob_hi, dx, time);
                     });
@@ -225,32 +234,32 @@ void mflo::solve_potential(Real current_time)
             }
         }
 
-        linsolve_ptr->setACoeffs(ilev, acoeff[ilev]);
+        linsolve_obj.setACoeffs(ilev, acoeff[ilev]);
 
         // set b with diffusivities
-        linsolve_ptr->setBCoeffs(ilev, amrex::GetArrOfConstPtrs(face_bcoeff));
+        linsolve_obj.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(face_bcoeff));
 
         // bc's are stored in the ghost cells of potential
         if(mixedbc)
         {
-            linsolve_ptr->setLevelBC(ilev, &potential[ilev], &(robin_a[ilev]), 
+            linsolve_obj.setLevelBC(ilev, &potential[ilev], &(robin_a[ilev]), 
                                      &(robin_b[ilev]), &(robin_f[ilev]));
         }
         else
         {
-            linsolve_ptr->setLevelBC(ilev, &potential[ilev]);
+            linsolve_obj.setLevelBC(ilev, &potential[ilev]);
         }
 
     }
 
-    MLMG mlmg(*linsolve_ptr);
-    mlmg.setMaxIter(linsolve_maxiter);
+    MLMG mlmg(linsolve_obj);
+    mlmg.setMaxIter(max_iter);
     mlmg.setVerbose(linsolve_verbose);
 
 #ifdef AMREX_USE_HYPRE
     if (use_hypre)
     {
-        mlmg.setHypreOptionsNamespace("vidyut.hypre");
+        mlmg.setHypreOptionsNamespace("mflo.hypre");
         mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
     }
 #endif
@@ -272,7 +281,7 @@ void mflo::solve_potential(Real current_time)
 
     for (int ilev = 0; ilev <= finest_level; ilev++)
     {
-        amrex::MultiFab::Copy(phi_new[ilev], solution[ilev], 0, POT_ID, 1, 0);
+        amrex::MultiFab::Copy(phi_new[ilev], solution[ilev], 0, POT_INDX, 1, 0);
         
         const Array<const MultiFab*, AMREX_SPACEDIM> allgrad = {&gradsoln[ilev][0], 
             &gradsoln[ilev][1], &gradsoln[ilev][2]};

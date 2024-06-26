@@ -54,4 +54,7 @@
 #define GET_YDIR(a) ((a-1)*(a-2)/2 + a*(a-1))
 #define GET_ZDIR(a) ((a-1)*(a-2)   - a*(a-2))
 
+#define PERBC 0
+#define ROBINBC 1
+
 #endif

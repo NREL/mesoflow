@@ -21,13 +21,14 @@ void mflo::EvolveAMR(Real final_time, bool only_flow)
 
     for (int step = istep[0]; step < max_step && cur_time < final_time; ++step) 
     {
+        amrex::Print() << "\nCoarse STEP " << step + 1 << " starts ..."
+            << std::endl;
+        
         if (potential_solve == 1 && step % pot_solve_int == 0)
         {
             solve_potential(cur_time);
         }
         
-        amrex::Print() << "\nCoarse STEP " << step + 1 << " starts ..."
-            << std::endl;
         ComputeDt();
 
         int lev = 0;
@@ -482,44 +483,6 @@ void mflo::Advance_chemistry_implicit(int lev, Real time, Real dt_lev)
     // Advance from time to time + dt_lev
     //S_new/phi_new should have the new state
     integrator.advance(state_old, state_new, time, dt_lev); 
-}
-
-void mflo::compute_dsdt_chemistry(
-    int lev,
-    const int num_grow,
-    MultiFab& S,
-    MultiFab& dsdt,
-    Real time)
-{
-    dsdt.setVal(zeroval);
-
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    {
-        for (MFIter mfi(dsdt, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
-        {
-            const Box& bx = mfi.tilebox();
-
-            FArrayBox source_fab(bx,TOTAL_NVARS); //external sources
-            source_fab.setVal<RunOn::Device>(zeroval);
-            Elixir source_fab_eli = source_fab.elixir();
-
-            Array4<Real> s_arr = S.array(mfi);
-            Array4<Real> dsdt_arr = dsdt.array(mfi);
-            Array4<Real> source_arr = source_fab.array();
-
-            auto prob_lo = geom[lev].ProbLoArray();
-            const auto dx = geom[lev].CellSizeArray();
-
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                mflo_chem_reactions::compute_spec_source(
-                    i, j, k, s_arr, source_arr, prob_lo, dx, time);
-            });
-
-            dsdt[mfi].plus<RunOn::Device>(source_fab);
-        }
-    }
 }
 
 void mflo::update_cutcell_data(

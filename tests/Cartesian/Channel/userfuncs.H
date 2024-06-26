@@ -41,6 +41,49 @@ namespace mflo_user_funcs
                 source(i,j,k,nc) = zeroval;   
             }
         }
+    
+    AMREX_GPU_DEVICE AMREX_INLINE
+    void potential_bc(int i, int j, int k,
+                      int dir, int sgn,
+                      Array4<Real> const& phi,
+                      Array4<Real> const& bc_arr,
+                      Array4<Real> const& robin_a,
+                      Array4<Real> const& robin_b,
+                      Array4<Real> const& robin_f,
+                      GpuArray<Real, AMREX_SPACEDIM> prob_lo,
+                      GpuArray<Real, AMREX_SPACEDIM> prob_hi,
+                      GpuArray<Real, AMREX_SPACEDIM> dx,
+                      const Real time)
+    {
+    
+    
+    }
+    
+    AMREX_GPU_DEVICE AMREX_INLINE
+    void add_potential_sources(int i, int j, int k,
+                      Array4<Real> const& phi,
+                      Array4<Real> const& rhs,
+                      GpuArray<Real, AMREX_SPACEDIM> prob_lo,
+                      GpuArray<Real, AMREX_SPACEDIM> prob_hi,
+                      GpuArray<Real, AMREX_SPACEDIM> dx,
+                      const Real time)
+    {
+
+    
+    }
+    
+    AMREX_GPU_DEVICE AMREX_INLINE
+    void potential_dcoeff(int i, int j, int k,
+                      Array4<Real> const& phi,
+                      Array4<Real> const& rhs,
+                      GpuArray<Real, AMREX_SPACEDIM> prob_lo,
+                      GpuArray<Real, AMREX_SPACEDIM> prob_hi,
+                      GpuArray<Real, AMREX_SPACEDIM> dx,
+                      const Real time)
+    {
+
+    
+    }
 }
 
 #endif

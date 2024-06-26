@@ -47,6 +47,10 @@ mflo::mflo()
     mflo_varnames[PRES_INDX] = "pressure";
     mflo_varnames[TEMP_INDX] = "temperature";
     mflo_varnames[VFRAC_INDX] = "volfrac";
+    mflo_varnames[POT_INDX] = "potential";
+    mflo_varnames[EFLDX_INDX] = "efield_x";
+    mflo_varnames[EFLDY_INDX] = "efield_y";
+    mflo_varnames[EFLDZ_INDX] = "efield_z";
 
     for(int i=0;i<NUM_SPECIES;i++)
     {
