@@ -9,6 +9,9 @@
 #include <mflo.H>
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MLMG.H>
+#ifdef AMREX_USE_HYPRE
+#include <AMReX_Hypre.H>
+#endif
 
 void mflo::solve_potential(Real current_time)
 {
