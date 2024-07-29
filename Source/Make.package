@@ -1,4 +1,4 @@
 CEXE_sources += main.cpp mflo.cpp mflo_evolve.cpp mflo_plot.cpp
-CEXE_sources += mflo_gridwork.cpp mflo_timestep.cpp 
+CEXE_sources += mflo_gridwork.cpp mflo_timestep.cpp mflo_splitchem.cpp 
 
 CEXE_headers += mflo.H kernels_3d.H mflo_tagging.H mflo_bcfill.H globalDefines.H mflo_constants.H
