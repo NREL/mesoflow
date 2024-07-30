@@ -242,6 +242,7 @@ private:
     int clip_species=1;
     Real dissfactor=0.5;
     int species_in_solid=1;
+    int conj_ht=0;
 
     // hyperbolic refluxing as part of multilevel synchronization
     int do_reflux = 1;

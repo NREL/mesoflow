@@ -23,7 +23,8 @@ void update_residual(
         Array4<Real> const& flxy,
         Array4<Real> const& flxz),
     const GpuArray<Real, AMREX_SPACEDIM>& dx,
-    int spec_in_solid)
+    int spec_in_solid,
+    int conj_ht)
 {
     // remember, we are solve dudt + del.F = 0
     dsdt(i, j, k, n) = (flxx(i, j, k, n) - flxx(i + 1, j, k, n)) / dx[0] +
@@ -33,15 +34,31 @@ void update_residual(
 
     int nvars_to_nullify=(spec_in_solid==1)?FLO_NVARS:FLO_NVARS+NUM_SPECIES;
 
-
-    if(n < nvars_to_nullify)
+    //check for rhoe because we may have conjugate heat transfer
+    if(n!=RHOE_INDX)
     {
-        if(phi(i,j,k,VFRAC_INDX) < one)
-        {    
-          dsdt(i, j, k, n)=zeroval;
+        if(n < nvars_to_nullify)
+        {
+            if(phi(i,j,k,VFRAC_INDX) < one)
+            {    
+                dsdt(i, j, k, n)=zeroval;
+            }
         }
     }
-    
+    //if n is rhoe
+    else
+    {
+        //if no conjugate heat transfer
+        //null the dsdt
+        if(!conj_ht)
+        {
+            if(phi(i,j,k,VFRAC_INDX) < one)
+            {    
+                dsdt(i, j, k, n)=zeroval;
+            }
+        }
+    }
+
     if(dsdt(i,j,k,n)!=dsdt(i,j,k,n))
     {
         amrex::Abort("NaN detected in dsdt\n");

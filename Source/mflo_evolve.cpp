@@ -115,6 +115,7 @@ void mflo::update_primitive_vars(int lev)
 {
     MultiFab& S_new = phi_new[lev];
     bool nsflag=(do_ns==1)?true:false;
+    int chtflag=conj_ht;
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -127,6 +128,7 @@ void mflo::update_primitive_vars(int lev)
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 
+                //cant be greater than 1
                 if(snew_arr(i,j,k,VFRAC_INDX) >= one)
                 {
                     Real u[NCVARS+NUM_SPECIES], p[NCVARS];
@@ -147,6 +149,14 @@ void mflo::update_primitive_vars(int lev)
                     snew_arr(i, j, k, TEMP_INDX)=mflo_thermo::get_t_from_rpc(snew_arr(i, j, k, DENS_INDX),
                                                                              snew_arr(i, j, k, PRES_INDX),u+NCVARS);
                 }
+                else
+                {
+                    //there is conjugate heat transfer and I am in the solid..
+                    if(chtflag && snew_arr(i,j,k,VFRAC_INDX)==zeroval)
+                    {
+                        snew_arr(i,j,k,TEMP_INDX)=mflo_thermo::get_solid_t_from_rhoe(snew_arr(i,j,k,RHOE_INDX));
+                    }
+                }
             });
 
             Real minpressure=S_new[mfi].min<RunOn::Device>(PRES_INDX);
@@ -157,6 +167,7 @@ void mflo::update_primitive_vars(int lev)
             }
         }
     }
+
 }
 
 // advance a level by dt
@@ -196,6 +207,7 @@ void mflo::timeStep(int lev, Real time, int iteration, bool only_flow)
             }
         }
     }
+    
 
     if (Verbose()) 
     {
@@ -492,6 +504,7 @@ void mflo::update_cutcell_data(
     const auto dx = geom[lev].CellSizeArray();
     int using_inert_gas=using_bg_inertgas;
     int spec_in_solid=species_in_solid;
+    int chtflag=conj_ht;
 
     for (MFIter mfi(Sborder, TilingIfNotGPU()); mfi.isValid(); ++mfi) 
     {
@@ -500,7 +513,7 @@ void mflo::update_cutcell_data(
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
             update_cutcells(i,j,k,sborder_arr,dx,prob_lo,time,
-                            spec_in_solid,using_inert_gas);
+                            spec_in_solid,using_inert_gas,chtflag);
         });
     }
 }
@@ -541,6 +554,7 @@ void mflo::compute_dsdt_flow(
     const auto dx = geom[lev].CellSizeArray();
     const auto prob_lo = geom[lev].ProbLoArray();
     bool nsflag=(do_ns==1)?true:false;
+    int conjhtflag=conj_ht;
 
     int ncomp = Sborder.nComp();
     int hyperbolics_order = order_hyp;
@@ -633,7 +647,7 @@ void mflo::compute_dsdt_flow(
                     update_residual(
                         i, j, k, n, dsdt_arr, source_arr, sborder_arr,
                         AMREX_D_DECL(flux_arr[0], flux_arr[1], flux_arr[2]),
-                        dx,spec_in_solid);
+                        dx,spec_in_solid,conjhtflag);
                 });
         }
     }

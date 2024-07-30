@@ -292,6 +292,7 @@ void mflo::ReadParameters()
         pp.query("clip_species",clip_species);
         pp.query("dissfactor",dissfactor);
         pp.query("species_in_solid",species_in_solid);
+        pp.query("conjugate_heat_transfer",conj_ht);
     }
     {
         // Add default time integration options for the chemisty solver
