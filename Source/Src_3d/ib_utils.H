@@ -351,7 +351,7 @@ update_cutcells(int i, int j, int k,
                 {
                     for(int l=-1;l<=1;l++)
                     {
-                        if(l!=0 && m!=0 && n!=0)
+                        if(!(l==0 && m==0 && n==0))
                         {
                            sumtemp+=phi(i+l,j+m,k+n,TEMP_INDX);
                            cnt++;
@@ -361,6 +361,7 @@ update_cutcells(int i, int j, int k,
             }
             //cnt should be 26
             phi(i,j,k,TEMP_INDX)=sumtemp/Real(cnt);
+            //amrex::Print()<<"sumtemp,cnt,temp:"<<sumtemp<<"\t"<<cnt<<"\t"<<phi(i,j,k,TEMP_INDX)<<"\n";
         }
 
         if(!spec_in_solid)

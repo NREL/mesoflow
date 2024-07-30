@@ -129,7 +129,7 @@ void mflo::update_primitive_vars(int lev)
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 
                 //cant be greater than 1
-                if(snew_arr(i,j,k,VFRAC_INDX) >= one)
+                if(snew_arr(i,j,k,VFRAC_INDX) == one)
                 {
                     Real u[NCVARS+NUM_SPECIES], p[NCVARS];
 

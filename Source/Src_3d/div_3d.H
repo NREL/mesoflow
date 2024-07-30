@@ -57,10 +57,21 @@ void update_residual(
                 dsdt(i, j, k, n)=zeroval;
             }
         }
+        else
+        {
+            //when conjugate heat transfer is there
+            //null the dsdt in fractional cells
+            //as these are recalculated from cut cells
+            if(phi(i,j,k,VFRAC_INDX) > zeroval && phi(i,j,k,VFRAC_INDX) < one)
+            {
+                dsdt(i, j, k, n)=zeroval;
+            }
+        }
     }
 
     if(dsdt(i,j,k,n)!=dsdt(i,j,k,n))
     {
+        amrex::Print()<<"n="<<n<<"\t"<<RHOE_INDX<<"\t"<<i<<"\t"<<j<<"\t"<<k<<"\t"<<phi(i,j,k,VFRAC_INDX)<<"\n";
         amrex::Abort("NaN detected in dsdt\n");
     }
 }
