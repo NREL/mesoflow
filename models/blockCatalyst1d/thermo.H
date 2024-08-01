@@ -18,12 +18,21 @@ namespace mflo_thermo
     AMREX_GPU_HOST_DEVICE AMREX_INLINE Real 
     get_solid_t_from_rhoe(Real rhoe)
     {
-        amrex::Real Cv_solid=1000.0;
-        amrex::Real rho_solid=2000.0;
-        amrex::Real temp=rhoe/(rho_solid*Cv_solid);
+        //modify if conjugate heat transfer 
+        //included
+        amrex::Real temp=300.0;
         return(temp);
     }
-
+    
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE Real 
+    get_solid_rhoe_from_t(Real temp)
+    {
+        //modify if conjugate 
+        //heat transfer included
+        amrex::Real Cv_solid=1.0;
+        amrex::Real rho_solid=1.0;
+        return(rho_solid*Cv_solid*temp);
+    }
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
         Real get_r_from_c(Real spec[NUM_SPECIES],Real bgasconc=zeroval)
         {
