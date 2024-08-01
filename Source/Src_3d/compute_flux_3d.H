@@ -188,6 +188,13 @@ void compute_flux(int i, int j, int k,int sweepdir,
     facevel[XDIR] = half*(phi(left,VELX_INDX) + phi(right,VELX_INDX));
     facevel[YDIR] = half*(phi(left,VELY_INDX) + phi(right,VELY_INDX));
     facevel[ZDIR] = half*(phi(left,VELZ_INDX) + phi(right,VELZ_INDX));
+
+    Real facevfrac;
+    facevfrac=half*(phi(left,VFRAC_INDX)+phi(right,VFRAC_INDX));
+
+    //note: 
+    //if facevfrac >=0.5, this face is a gas cell-fractional cell interface
+    //if facevfrac < 0.5, this face is solid cell-fractional cell interface
     
     for(int c=0;c<NCVARS;c++)
     {
@@ -241,116 +248,133 @@ void compute_flux(int i, int j, int k,int sweepdir,
             }
         }
 
-        if(hyperbolics_order==1)
+        //do hyperbolic fluxes only at
+        //gas-cell--gas-cell interface or
+        //gas-cell--fractional-cell interface
+        if(facevfrac >= 0.5)
         {
-            ausmp_up_flux(ul,ur,fhalf,normal);
+            if(hyperbolics_order==1)
+            {
+                ausmp_up_flux(ul,ur,fhalf,normal);
+            }
+            else if(hyperbolics_order==2)
+            {
+                get_higherorder_states(ul2,ur2,ul,ur,ulm1,urp1);
+                ausmp_up_flux(ul2,ur2,fhalf,normal);
+            }
+            else if(hyperbolics_order==4)
+            {
+                central_with_diss_flux(ul,ur,ulm1,urp1,fhalf,normal,dissfactor);
+            }
+            else if(hyperbolics_order==5)
+            {
+                weno_flux(ulm2,ulm1,ul,ur,urp1,urp2,fhalf,normal);
+            }
+            else
+            {
+                amrex::Abort("unknown hyperbolics scheme");
+            }
+
+            for(int c=0;c<NCVARS;c++)
+            {
+                fx(i,j,k,c+RHO_INDX) = fhalf[c+RHO_IND];
+            }
+
+            //this is still correct in this if loop, 
+            //as we dont have any advection in solid
+            for(int sp=0;sp<NUM_SPECIES;sp++)
+            {
+                fx(i,j,k,sp+FLO_NVARS) =  mflo_species::advect_flags[sp]*fhalf[NCVARS+sp];
+            }
+
+            //viscous fluxes again inside this if loop
+            //only matters in gas-cell-gas-cell and
+            //gas-cell-fractional-cell interfaces
+            gradu[0]  = (phi(right,VELX_INDX) - phi(left,VELX_INDX))/dx[sweepdir];
+
+            gradu[1] = ( half*(phi(top_left,VELX_INDX) + phi(top_right,VELX_INDX)) 
+                        - half*(phi(bot_left,VELX_INDX) + phi(bot_right,VELX_INDX)) )/(two*dx[trans1dir]);
+
+            gradu[2] = ( half*(phi(frt_left,VELX_INDX) + phi(frt_right,VELX_INDX)) 
+                        - half*(phi(bck_left,VELX_INDX) + phi(bck_right,VELX_INDX)) )/(two*dx[trans2dir]);
+
+            gradv[0]  = (phi(right,VELY_INDX) - phi(left,VELY_INDX))/dx[sweepdir];
+
+            gradv[1] = ( half*(phi(top_left,VELY_INDX) + phi(top_right,VELY_INDX)) 
+                        - half*(phi(bot_left,VELY_INDX) + phi(bot_right,VELY_INDX)) )/(two*dx[trans1dir]);
+
+            gradv[2] = ( half*(phi(frt_left,VELY_INDX) + phi(frt_right,VELY_INDX)) 
+                        - half*(phi(bck_left,VELY_INDX) + phi(bck_right,VELY_INDX)) )/(two*dx[trans2dir]);
+
+            gradw[0]  = (phi(right,VELZ_INDX) - phi(left,VELZ_INDX))/dx[sweepdir];
+
+            gradw[1] = ( half*(phi(top_left,VELZ_INDX) + phi(top_right,VELZ_INDX)) 
+                        - half*(phi(bot_left,VELZ_INDX) + phi(bot_right,VELZ_INDX)) )/(two*dx[trans1dir]);
+
+            gradw[2] = ( half*(phi(frt_left,VELZ_INDX) + phi(frt_right,VELZ_INDX)) 
+                        - half*(phi(bck_left,VELZ_INDX) + phi(bck_right,VELZ_INDX)) )/(two*dx[trans2dir]);
+
+            dudx=gradu[GET_XDIR(sweepdir)];
+            dudy=gradu[GET_YDIR(sweepdir)];
+            dudz=gradu[GET_ZDIR(sweepdir)];
+
+            dvdx=gradv[GET_XDIR(sweepdir)];
+            dvdy=gradv[GET_YDIR(sweepdir)];
+            dvdz=gradv[GET_ZDIR(sweepdir)];
+
+            dwdx=gradw[GET_XDIR(sweepdir)];
+            dwdy=gradw[GET_YDIR(sweepdir)];
+            dwdz=gradw[GET_ZDIR(sweepdir)];
+
+
+            delu = dudx + dvdy + dwdz;
+
+            tau[XDIR][XDIR]= visc*(two*dudx - two3rd*delu);
+            tau[XDIR][YDIR]= visc*(dudy + dvdx);
+            tau[XDIR][ZDIR]= visc*(dudz + dwdx);
+
+            tau[YDIR][XDIR]= visc*(dvdx + dudy);
+            tau[YDIR][YDIR]= visc*(two*dvdy - two3rd*delu);
+            tau[YDIR][ZDIR]= visc*(dvdz + dwdy);
+
+            tau[ZDIR][XDIR]= visc*(dwdx + dudz);
+            tau[ZDIR][YDIR]= visc*(dwdy + dvdz);
+            tau[ZDIR][ZDIR]= visc*(two*dwdz - two3rd*delu);
+
+            fx(i,j,k,RHOU_INDX) -= ( tau[XDIR][XDIR]*normal[XDIR] 
+                                    + tau[YDIR][XDIR]*normal[YDIR] 
+                                    + tau[ZDIR][XDIR]*normal[ZDIR]);
+
+            fx(i,j,k,RHOV_INDX) -= ( tau[XDIR][YDIR]*normal[XDIR] 
+                                    + tau[YDIR][YDIR]*normal[YDIR] 
+                                    + tau[ZDIR][YDIR]*normal[ZDIR]);
+
+            fx(i,j,k,RHOW_INDX) -= ( tau[XDIR][ZDIR]*normal[XDIR] 
+                                    + tau[YDIR][ZDIR]*normal[YDIR] 
+                                    + tau[ZDIR][ZDIR]*normal[ZDIR]);
+            
+            //this term is the work done on the control volume by viscous forces - tau_{ji} n_j v_i
+            fx(i,j,k,RHOE_INDX) -= (tau[XDIR][XDIR]*normal[XDIR] + 
+                                    tau[YDIR][XDIR]*normal[YDIR] +
+                                    tau[ZDIR][XDIR]*normal[ZDIR] )*facevel[XDIR];
+
+            fx(i,j,k,RHOE_INDX) -= (tau[XDIR][YDIR]*normal[XDIR] + 
+                                    tau[YDIR][YDIR]*normal[YDIR] +
+                                    tau[ZDIR][YDIR]*normal[ZDIR] )*facevel[YDIR];
+
+            fx(i,j,k,RHOE_INDX) -= (tau[XDIR][ZDIR]*normal[XDIR] + 
+                                    tau[YDIR][ZDIR]*normal[YDIR] +
+                                    tau[ZDIR][ZDIR]*normal[ZDIR] )*facevel[ZDIR];
+
         }
-        else if(hyperbolics_order==2)
-        {
-            get_higherorder_states(ul2,ur2,ul,ur,ulm1,urp1);
-            ausmp_up_flux(ul2,ur2,fhalf,normal);
-        }
-        else if(hyperbolics_order==4)
-        {
-            central_with_diss_flux(ul,ur,ulm1,urp1,fhalf,normal,dissfactor);
-        }
-        else if(hyperbolics_order==5)
-        {
-            weno_flux(ulm2,ulm1,ul,ur,urp1,urp2,fhalf,normal);
-        }
-        else
-        {
-           amrex::Abort("unknown hyperbolics scheme");
-        }
 
-        for(int c=0;c<NCVARS;c++)
-        {
-            fx(i,j,k,c+RHO_INDX) = fhalf[c+RHO_IND];
-        }
-        for(int sp=0;sp<NUM_SPECIES;sp++)
-        {
-            fx(i,j,k,sp+FLO_NVARS) =  mflo_species::advect_flags[sp]*fhalf[NCVARS+sp];
-        }
-
-        gradu[0]  = (phi(right,VELX_INDX) - phi(left,VELX_INDX))/dx[sweepdir];
-
-        gradu[1] = ( half*(phi(top_left,VELX_INDX) + phi(top_right,VELX_INDX)) 
-                    - half*(phi(bot_left,VELX_INDX) + phi(bot_right,VELX_INDX)) )/(two*dx[trans1dir]);
-
-        gradu[2] = ( half*(phi(frt_left,VELX_INDX) + phi(frt_right,VELX_INDX)) 
-                    - half*(phi(bck_left,VELX_INDX) + phi(bck_right,VELX_INDX)) )/(two*dx[trans2dir]);
-
-        gradv[0]  = (phi(right,VELY_INDX) - phi(left,VELY_INDX))/dx[sweepdir];
-
-        gradv[1] = ( half*(phi(top_left,VELY_INDX) + phi(top_right,VELY_INDX)) 
-                    - half*(phi(bot_left,VELY_INDX) + phi(bot_right,VELY_INDX)) )/(two*dx[trans1dir]);
-
-        gradv[2] = ( half*(phi(frt_left,VELY_INDX) + phi(frt_right,VELY_INDX)) 
-                    - half*(phi(bck_left,VELY_INDX) + phi(bck_right,VELY_INDX)) )/(two*dx[trans2dir]);
-
-        gradw[0]  = (phi(right,VELZ_INDX) - phi(left,VELZ_INDX))/dx[sweepdir];
-
-        gradw[1] = ( half*(phi(top_left,VELZ_INDX) + phi(top_right,VELZ_INDX)) 
-                    - half*(phi(bot_left,VELZ_INDX) + phi(bot_right,VELZ_INDX)) )/(two*dx[trans1dir]);
-
-        gradw[2] = ( half*(phi(frt_left,VELZ_INDX) + phi(frt_right,VELZ_INDX)) 
-                    - half*(phi(bck_left,VELZ_INDX) + phi(bck_right,VELZ_INDX)) )/(two*dx[trans2dir]);
-
-        dudx=gradu[GET_XDIR(sweepdir)];
-        dudy=gradu[GET_YDIR(sweepdir)];
-        dudz=gradu[GET_ZDIR(sweepdir)];
-
-        dvdx=gradv[GET_XDIR(sweepdir)];
-        dvdy=gradv[GET_YDIR(sweepdir)];
-        dvdz=gradv[GET_ZDIR(sweepdir)];
-
-        dwdx=gradw[GET_XDIR(sweepdir)];
-        dwdy=gradw[GET_YDIR(sweepdir)];
-        dwdz=gradw[GET_ZDIR(sweepdir)];
-
+        //keeping thermal conduction outside 
+        //to include conjugate heat transfer
         dTdn = (phi(right,TEMP_INDX) - phi(left,TEMP_INDX))/dx[sweepdir];
-
-        delu = dudx + dvdy + dwdz;
-
-        tau[XDIR][XDIR]= visc*(two*dudx - two3rd*delu);
-        tau[XDIR][YDIR]= visc*(dudy + dvdx);
-        tau[XDIR][ZDIR]= visc*(dudz + dwdx);
-
-        tau[YDIR][XDIR]= visc*(dvdx + dudy);
-        tau[YDIR][YDIR]= visc*(two*dvdy - two3rd*delu);
-        tau[YDIR][ZDIR]= visc*(dvdz + dwdy);
-
-        tau[ZDIR][XDIR]= visc*(dwdx + dudz);
-        tau[ZDIR][YDIR]= visc*(dwdy + dvdz);
-        tau[ZDIR][ZDIR]= visc*(two*dwdz - two3rd*delu);
-
-        fx(i,j,k,RHOU_INDX) -= ( tau[XDIR][XDIR]*normal[XDIR] 
-                                + tau[YDIR][XDIR]*normal[YDIR] 
-                                + tau[ZDIR][XDIR]*normal[ZDIR]);
-
-        fx(i,j,k,RHOV_INDX) -= ( tau[XDIR][YDIR]*normal[XDIR] 
-                                + tau[YDIR][YDIR]*normal[YDIR] 
-                                + tau[ZDIR][YDIR]*normal[ZDIR]);
-
-        fx(i,j,k,RHOW_INDX) -= ( tau[XDIR][ZDIR]*normal[XDIR] 
-                                + tau[YDIR][ZDIR]*normal[YDIR] 
-                                + tau[ZDIR][ZDIR]*normal[ZDIR]);
-
         fx(i,j,k,RHOE_INDX) -= thcond*dTdn;
 
-
-        //this term is the work done on the control volume by viscous forces - tau_{ji} n_j v_i
-        fx(i,j,k,RHOE_INDX) -= (tau[XDIR][XDIR]*normal[XDIR] + 
-                                tau[YDIR][XDIR]*normal[YDIR] +
-                                tau[ZDIR][XDIR]*normal[ZDIR] )*facevel[XDIR];
-
-        fx(i,j,k,RHOE_INDX) -= (tau[XDIR][YDIR]*normal[XDIR] + 
-                                tau[YDIR][YDIR]*normal[YDIR] +
-                                tau[ZDIR][YDIR]*normal[ZDIR] )*facevel[YDIR];
-
-        fx(i,j,k,RHOE_INDX) -= (tau[XDIR][ZDIR]*normal[XDIR] + 
-                                tau[YDIR][ZDIR]*normal[YDIR] +
-                                tau[ZDIR][ZDIR]*normal[ZDIR] )*facevel[ZDIR];
+        //amrex::Print()<<"dTdn:"<<dTdn<<"\t"<<thcond<<"\t"<<fx(i,j,k,RHOE_INDX)<<"\t"
+        //<<phi(iv,VFRAC_INDX)<<"\t"<<facevel[0]<<"\t"<<facevel[1]<<"\t"<<facevel[2]<<"\n";
     }
     else
     {
