@@ -71,7 +71,6 @@ void update_residual(
 
     if(dsdt(i,j,k,n)!=dsdt(i,j,k,n))
     {
-        amrex::Print()<<"n="<<n<<"\t"<<RHOE_INDX<<"\t"<<i<<"\t"<<j<<"\t"<<k<<"\t"<<phi(i,j,k,VFRAC_INDX)<<"\n";
         amrex::Abort("NaN detected in dsdt\n");
     }
 }
