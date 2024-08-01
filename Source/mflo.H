@@ -251,6 +251,7 @@ private:
     int clip_species=1;
     Real dissfactor=0.5;
     int species_in_solid=1;
+    int conj_ht=0;
 
     // hyperbolic refluxing as part of multilevel synchronization
     int do_reflux = 1;
@@ -263,7 +264,9 @@ private:
     int plot_int = -1;
 
     int potential_solve=0;
+    int mag_potential_solve=0;
     int pot_solve_int=1;
+    int mag_pot_solve_int=1;
 
     // checkpoint prefix and frequency
     std::string chk_file{"chk"};

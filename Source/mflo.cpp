@@ -312,6 +312,9 @@ void mflo::ReadParameters()
         pp.query("species_in_solid",species_in_solid);
         pp.query("potential_solve",potential_solve);
         pp.query("pot_solve_int",pot_solve_int);
+        pp.query("magnetic_potential_solve",mag_potential_solve);
+        pp.query("magnetic_pot_solve_int",mag_pot_solve_int);
+        pp.query("conjugate_heat_transfer",conj_ht);
     }
     {
         // Add default time integration options for the chemisty solver

@@ -273,7 +273,8 @@ update_cutcells(int i, int j, int k,
                 Array4<Real> const& phi, //state variable
                 const GpuArray<Real, AMREX_SPACEDIM>& dx,
                 const GpuArray<Real, AMREX_SPACEDIM>& plo,
-                Real time, int spec_in_solid, int use_bg_gas)
+                Real time, int spec_in_solid, int use_bg_gas,
+                int chtflag)
 {
 
     Real lsgrad[3]={0.0};
@@ -334,8 +335,34 @@ update_cutcells(int i, int j, int k,
 
         phi(i,j,k,PRES_INDX)=do_interpolation_hom_neumann(i,j,k,STENCILGROW,xp,phi,PRES_INDX,dx);
 
-        //adiabatic wall for now
-        phi(i,j,k,TEMP_INDX)=do_interpolation_hom_neumann(i,j,k,STENCILGROW,xp,phi,TEMP_INDX,dx);
+        if(!chtflag)
+        {
+          //zero gradient
+          phi(i,j,k,TEMP_INDX)=do_interpolation_hom_neumann(i,j,k,STENCILGROW,xp,phi,TEMP_INDX,dx);
+        }
+        else
+        {
+            //3 by 3 stencil
+            Real sumtemp=0.0;
+            int cnt=0;
+            for(int n=-1;n<=1;n++)
+            {
+                for(int m=-1;m<=1;m++)
+                {
+                    for(int l=-1;l<=1;l++)
+                    {
+                        if(!(l==0 && m==0 && n==0))
+                        {
+                           sumtemp+=phi(i+l,j+m,k+n,TEMP_INDX);
+                           cnt++;
+                        }
+                    }
+                }
+            }
+            //cnt should be 26
+            phi(i,j,k,TEMP_INDX)=sumtemp/Real(cnt);
+            //amrex::Print()<<"sumtemp,cnt,temp:"<<sumtemp<<"\t"<<cnt<<"\t"<<phi(i,j,k,TEMP_INDX)<<"\n";
+        }
 
         if(!spec_in_solid)
         {
@@ -355,39 +382,39 @@ update_cutcells(int i, int j, int k,
             }
 
             phi(i,j,k,DENS_INDX)=do_interpolation_hom_neumann(i,j,k,STENCILGROW,xp,phi,DENS_INDX,dx);
-            
+
             //need to fix this
             /*if(!use_bg_gas)
+              {
+              phi(i,j,k,DENS_INDX)=mflo_thermo::get_r_from_c(consvars+NCVARS); 
+              }
+              else
+              {
+              for(int n=-STENCILGROW;n<=STENCILGROW;n++)
+              {
+              for(int m=-STENCILGROW;m<=STENCILGROW;m++)
+              {
+              for(int l=-STENCILGROW;l<=STENCILGROW;l++)
+              {
+              int ind=(n+STENCILGROW)*STENCILSIZE*STENCILSIZE
+              +(m+STENCILGROW)*STENCILSIZE+(l+STENCILGROW);
+
+              Real spec[NUM_SPECIES];
+
+              vfrac[ind]=phi(i+l,j+m,k+n,VFRAC_INDX);
+
+            //includes the cut-cell under consideration
+            //but the cut cell is not used for interpolation
+            for(int sp=0;sp<NUM_SPECIES;sp++)
             {
-                phi(i,j,k,DENS_INDX)=mflo_thermo::get_r_from_c(consvars+NCVARS); 
+            spec[sp]=phi(i,j,k,FLO_NVARS+sp);
             }
-            else
-            {
-                for(int n=-STENCILGROW;n<=STENCILGROW;n++)
-                {
-                    for(int m=-STENCILGROW;m<=STENCILGROW;m++)
-                    {
-                        for(int l=-STENCILGROW;l<=STENCILGROW;l++)
-                        {
-                            int ind=(n+STENCILGROW)*STENCILSIZE*STENCILSIZE
-                            +(m+STENCILGROW)*STENCILSIZE+(l+STENCILGROW);
-
-                            Real spec[NUM_SPECIES];
-
-                            vfrac[ind]=phi(i+l,j+m,k+n,VFRAC_INDX);
-
-                            //includes the cut-cell under consideration
-                            //but the cut cell is not used for interpolation
-                            for(int sp=0;sp<NUM_SPECIES;sp++)
-                            {
-                                spec[sp]=phi(i,j,k,FLO_NVARS+sp);
-                            }
-                            celldata[ind]=mflo_thermo::get_bgasconc_from_rc(phi(i+l,j+m,k+n,DENS_INDX),spec);
-                        }
-                    }
-                }
-                Real bgconc=do_interpolation_hom_neumann(STENCILGROW,xp,vfrac,celldata,dx);
-                phi(i,j,k,DENS_INDX)=mflo_thermo::get_r_from_c(consvars+NCVARS,bgconc);
+            celldata[ind]=mflo_thermo::get_bgasconc_from_rc(phi(i+l,j+m,k+n,DENS_INDX),spec);
+            }
+            }
+            }
+            Real bgconc=do_interpolation_hom_neumann(STENCILGROW,xp,vfrac,celldata,dx);
+            phi(i,j,k,DENS_INDX)=mflo_thermo::get_r_from_c(consvars+NCVARS,bgconc);
             }*/
         }
 
