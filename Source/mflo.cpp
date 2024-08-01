@@ -48,9 +48,28 @@ mflo::mflo()
     mflo_varnames[TEMP_INDX] = "temperature";
     mflo_varnames[VFRAC_INDX] = "volfrac";
     mflo_varnames[POT_INDX] = "potential";
-    mflo_varnames[EFLDX_INDX] = "efield_x";
-    mflo_varnames[EFLDY_INDX] = "efield_y";
-    mflo_varnames[EFLDZ_INDX] = "efield_z";
+    mflo_varnames[EFLDX_INDX] = "efieldx";
+    mflo_varnames[EFLDY_INDX] = "efieldy";
+    mflo_varnames[EFLDZ_INDX] = "efieldz";
+    mflo_varnames[AX_INDX] = "Ax";
+    mflo_varnames[AY_INDX] = "Ay";
+    mflo_varnames[AZ_INDX] = "Az";
+
+    mflo_varnames[GAXX_INDX] = "dAxdx";
+    mflo_varnames[GAXY_INDX] = "dAxdy";
+    mflo_varnames[GAXZ_INDX] = "dAxdz";
+    
+    mflo_varnames[GAYX_INDX] = "dAydx";
+    mflo_varnames[GAYY_INDX] = "dAydy";
+    mflo_varnames[GAYZ_INDX] = "dAydz";
+    
+    mflo_varnames[GAZX_INDX] = "dAzdx";
+    mflo_varnames[GAZY_INDX] = "dAzdy";
+    mflo_varnames[GAZZ_INDX] = "dAzdz";
+    
+    mflo_varnames[BX_INDX] = "bfieldx";
+    mflo_varnames[BY_INDX] = "bfieldy";
+    mflo_varnames[BZ_INDX] = "bfieldz";
 
     for(int i=0;i<NUM_SPECIES;i++)
     {

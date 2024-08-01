@@ -132,6 +132,8 @@ public:
                              BCType::foextrap};
 
     void solve_potential(Real current_time);
+    void update_Bfields();
+    void solve_magnetic_vecpot(Real current_time,int Adir);
 
 private:
     ////////////////
