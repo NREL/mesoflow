@@ -133,7 +133,7 @@ void mflo::solve_magnetic_vecpot(Real current_time,int Adir)
 
         // Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, 
         // int dstcomp, int numcomp, const IntVect& nghost)
-        amrex::Copy(potential[ilev], Sborder, POT_INDX, 0, 1, num_grow);
+        amrex::Copy(potential[ilev], Sborder, AX_INDX+Adir, 0, 1, num_grow);
 
         solution[ilev].setVal(0.0);
         amrex::MultiFab::Copy(solution[ilev], potential[ilev], 0, 0, 1, 1);
@@ -175,7 +175,7 @@ void mflo::solve_magnetic_vecpot(Real current_time,int Adir)
                                                          phi_arr(i,j,k,VFRAC_INDX));
                 amrex::Real J=sigma*phi_arr(i,j,k,EFLDX_INDX+dircn);
                 //negative sign already accounted for in the diff term
-                rhs_arr(i,j,k)=MU0*J; 
+                rhs_arr(i,j,k)+=MU0*J; 
 
             });
         }
@@ -280,7 +280,7 @@ void mflo::solve_magnetic_vecpot(Real current_time,int Adir)
 
     for (int ilev = 0; ilev <= finest_level; ilev++)
     {
-        amrex::MultiFab::Copy(phi_new[ilev], solution[ilev], 0, POT_INDX, 1, 0);
+        amrex::MultiFab::Copy(phi_new[ilev], solution[ilev], 0, AX_INDX+Adir, 1, 0);
         
         const Array<const MultiFab*, AMREX_SPACEDIM> allgrad = {&gradsoln[ilev][0], 
             &gradsoln[ilev][1], &gradsoln[ilev][2]};
@@ -302,13 +302,6 @@ void mflo::update_Bfields()
 {
     for (int ilev = 0; ilev <= finest_level; ilev++)
     {
-        const auto dx = geom[ilev].CellSizeArray();
-        const int* domlo_arr = geom[ilev].Domain().loVect();
-        const int* domhi_arr = geom[ilev].Domain().hiVect();
-
-        GpuArray<int,AMREX_SPACEDIM> domlo={AMREX_D_DECL(domlo_arr[0], domlo_arr[1], domlo_arr[2])};
-        GpuArray<int,AMREX_SPACEDIM> domhi={AMREX_D_DECL(domhi_arr[0], domhi_arr[1], domhi_arr[2])};
-
         for (MFIter mfi(phi_new[ilev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();

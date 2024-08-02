@@ -33,6 +33,7 @@ void mflo::EvolveAMR(Real final_time, bool only_flow)
             solve_magnetic_vecpot(cur_time,0);
             solve_magnetic_vecpot(cur_time,1);
             solve_magnetic_vecpot(cur_time,2);
+            update_Bfields();
         }
         
         ComputeDt();
