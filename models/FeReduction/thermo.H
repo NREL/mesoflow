@@ -11,10 +11,22 @@
 #include <globalDefines.H>
 #include <mflo_constants.H>
 #include <species.H>
+#include <cubicSpline.H>
 
+#include <AMReX_PlotFileUtil.H>
 using namespace amrex;
+
+extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator visc_inter;
+extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator thcond_inter;
+extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator sig_inter;
+extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator e_AR_inter;
+extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator e_H2_inter;
+
 namespace mflo_thermo
 {
+	
+
+	
     AMREX_GPU_HOST_DEVICE AMREX_INLINE Real 
     get_solid_t_from_rhoe(Real rhoe)
     {
@@ -44,11 +56,25 @@ namespace mflo_thermo
         Real gama_h=1.66;
         Real tempk=temp/1000.0;
 
-        rhoe += spec[AR_ID]*mflo_species::molwts[AR_ID]*
-        (0.31492*tempk+170.0*exp(-0.007*(tempk-35.0)*(tempk-35.0)))*1e6;
+		if(temp < 400 || temp > 24000){
+			 
+			rhoe += spec[AR_ID]*mflo_species::molwts[AR_ID]*         //spec[AR_ID] represents (no of moles of Ar) / (volume)
+			(0.31492*tempk+170.0*exp(-0.007*(tempk-35.0)*(tempk-35.0)))*1e6;
+			
+			rhoe += spec[H2_ID]*mflo_species::molwts[H2_ID]*
+			(3.0*tempk+2500.0*exp(-0.008*(tempk-25.0)*(tempk-25.0)))*1e6;
+		}
+		else{                                                     //do interpolation
+	
+			rhoe += spec[AR_ID]*mflo_species::molwts[AR_ID]*e_AR_inter.interpolate(temp);
+			
+			rhoe += spec[H2_ID]*mflo_species::molwts[H2_ID]*e_H2_inter.interpolate(temp);
+		}
         
-        rhoe += spec[H2_ID]*mflo_species::molwts[H2_ID]*
-        (3.0*tempk+2500.0*exp(-0.008*(tempk-25.0)*(tempk-25.0)))*1e6;
+        
+        
+        
+        
         
         rhoe += spec[H_ID]*RU/(gama_h-1.0)*temp;
         rhoe += spec[H2O_ID]*RU/(gama_h2o-1.0)*temp;
@@ -183,8 +209,34 @@ namespace mflo_thermo
     {
         Real sig_solid=1.0; //FIX: for FEO
         Real sig_gas=(1+std::tanh(0.0005*(temp-7000.0)))*1000.0+1.0;
+        //Real sig_gas=sig_inter.interpolate(temp);  
         Real sig=vfrac*sig_gas+(1.0-vfrac)*sig_solid;
         return(sig);
     }
 }
 #endif
+        
+//VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);        
+//std::ofstream outFile;
+//std::string FileName("AR.txt");
+//if(ParallelDescriptor::IOProcessor())
+			 //{
+					
+				   //outFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+				   //outFile.open(FileName.c_str(), std::ofstream::out   |
+												  //std::ofstream::app |
+												   //std::ofstream::binary); 
+														   
+					   //if( ! outFile.good()) {
+						//amrex::FileOpenFailed(FileName);
+						//}
+						
+					//Real tmp1 = 1.0*         //spec[AR_ID] represents (no of moles of Ar) / (volume)
+			//(0.31492*tempk+170.0*exp(-0.007*(tempk-35.0)*(tempk-35.0)))*1e6;
+			
+					//Real tmp2 = 1.0*e_AR_inter.interpolate(temp);
+					
+					//outFile <<temp<< "\t" <<tmp1<< "\t"<<tmp2<<"\n";	   
+			 //}			
+
+//outFile.close();

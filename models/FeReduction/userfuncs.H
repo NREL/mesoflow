@@ -12,7 +12,12 @@
 #include <mflo_constants.H>
 #include <thermo.H>
 
+#include <AMReX_PlotFileUtil.H>
+
+
 using namespace amrex;
+
+
 namespace mflo_user_funcs
 {
     extern AMREX_GPU_DEVICE_MANAGED Real cylrad;
@@ -35,7 +40,11 @@ namespace mflo_user_funcs
     extern AMREX_GPU_DEVICE_MANAGED Real pin_currentden;
     extern AMREX_GPU_DEVICE_MANAGED int pin_VI_flag;
     extern AMREX_GPU_DEVICE_MANAGED Real Tsolid;
+    
 
+
+
+    
     void initialize_problem();
 
     AMREX_GPU_DEVICE AMREX_INLINE
@@ -50,12 +59,20 @@ namespace mflo_user_funcs
             Real lscale=10*dx[1];
             Real trans_scale=20.0;
             Real sponge_fac=0.5*(1.0+std::tanh((amrex::Math::abs(y)-mflo_user_funcs::sponge_zone_dist)/lscale));
-
-            //from Boulos text book, page 1832
-            //approximate fit for Ar+10% Fe
-            Real scaled_temp=phi(i,j,k,TEMP_INDX)/1000.0;
-            Real visc=(3.1*(scaled_temp)*exp(-std::pow((scaled_temp-6),2.0)/50.0)+2.5)*1e-5;
-            Real thcond=0.006*std::pow(scaled_temp,2.0)+0.02;
+            Real visc, thcond;
+			if(phi(i,j,k,TEMP_INDX) < 300 || phi(i,j,k,TEMP_INDX) > 30000){ 
+				
+					//from Boulos text book, page 1832
+					//approximate fit for Ar+10% Fe
+					Real scaled_temp=phi(i,j,k,TEMP_INDX)/1000.0;
+					visc=(3.1*(scaled_temp)*exp(-std::pow((scaled_temp-6),2.0)/50.0)+2.5)*1e-5;
+					thcond=0.006*std::pow(scaled_temp,2.0)+0.02;
+				}
+			else{
+				
+				visc =visc_inter.interpolate(phi(i,j,k,TEMP_INDX));
+				thcond = thcond_inter.interpolate(phi(i,j,k,TEMP_INDX));
+			}
 
             transpcoeffs(i,j,k,VISC_INDX  ) = visc*(1.0+sponge_fac*trans_scale);       //viscosity
             transpcoeffs(i,j,k,THCOND_INDX) = thcond*(1.0+sponge_fac*trans_scale); //thermal conductivity

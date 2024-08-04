@@ -1,6 +1,12 @@
 #include<userfuncs.H>
 #include <AMReX_ParmParse.H>
 
+AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator visc_inter;
+AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator thcond_inter;
+AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator sig_inter;
+AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator e_AR_inter;
+AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator e_H2_inter;
+
 namespace mflo_user_funcs
 {
     AMREX_GPU_DEVICE_MANAGED Real fs_vel=1.0;
@@ -22,6 +28,10 @@ namespace mflo_user_funcs
     AMREX_GPU_DEVICE_MANAGED Real pin_size=1.25e-4;
     AMREX_GPU_DEVICE_MANAGED int pin_VI_flag=0;
     AMREX_GPU_DEVICE_MANAGED Real Tsolid=300.0;
+    
+
+
+
 
     void initialize_problem()
     {
@@ -51,5 +61,15 @@ namespace mflo_user_funcs
         
         pp.query("T_coflow",T_coflow);
         pp.query("vel_coflow",vel_coflow);
+        
+
+        
+        Real massFr = 0.1; //mass fraction of Fe in Ar
+        visc_inter.define("data_visc.txt",(massFr*10)+1);
+        thcond_inter.define("data_thc.txt",(massFr*10)+1);
+        sig_inter.define("data_sig.txt",5);  
+        e_AR_inter.define("data_e_AR.txt",1);
+		e_H2_inter.define("data_e_H2.txt",1);
+	
     }
 }

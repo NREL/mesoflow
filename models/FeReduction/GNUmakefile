@@ -6,7 +6,7 @@ DEBUG      = FALSE
 
 DIM       = 3
 
-COMP	   = cray
+COMP	   = gnu
 
 USE_MPI    = TRUE
 USE_OMP    = FALSE 
@@ -16,6 +16,5 @@ USE_HYPRE  = TRUE
 Bpack   := ./Make.package 
 Blocs   := . 
 
-HYPRE_DIR=/home/hsitaram/codes/echemAMR/hypre/src/hypre/
 
-include ${MFLO_HOME}/tests/Make.mflo
+include ../../tests/Make.mflo

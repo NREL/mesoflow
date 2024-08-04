@@ -1,5 +1,5 @@
-MFLO_HOME  ?= ../../../../mesoflow
-AMREX_HOME ?= $(MFLO_HOME)/submods/amrex
+MFLO_HOME  ?= ../../../mesoflow
+AMREX_HOME ?= $(MFLO_HOME)/../../../../../amrex
 
 TOP := $(MFLO_HOME)
 
