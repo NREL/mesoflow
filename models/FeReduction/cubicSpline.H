@@ -102,7 +102,7 @@ public:
            if (ans2 < 1.0e-18L)
            {
             std::cerr << "Caution overshooting, include more data points, returning the average value" << std::endl; 
-            std::cerr << "temp" <<x_interpolate<<"\t"<<"value"<< y_values[i]<<std::endl; 
+            std::cerr << "temp" <<x_interpolate<<"\t"<<"value"<< 0.5*(y_values[i] + y_values[i+1])<<std::endl; 
             return 0.5*(y_values[i] + y_values[i+1]) ;
            }
            else{

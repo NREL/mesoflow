@@ -289,7 +289,7 @@ void mflo::solve_potential(Real current_time)
         const Array<const MultiFab*, AMREX_SPACEDIM> allgrad = {&gradsoln[ilev][0], 
             &gradsoln[ilev][1], &gradsoln[ilev][2]};
         average_face_to_cellcenter(phi_new[ilev], EFLDX_INDX, allgrad);
-        phi_new[ilev].mult(-1.0, EFLDX_INDX, 3);
+        phi_new[ilev].mult(-1.0, EFLDX_INDX, 3);   //-v E = -gradphi
     }
 
 

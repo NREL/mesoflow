@@ -171,8 +171,8 @@ void mflo::solve_magnetic_vecpot(Real current_time,int Adir)
 
                 rhs_arr(i,j,k)=0.0;
                 //add mu0 J here
-                amrex::Real sigma=mflo_thermo::conductivity(phi_arr(i,j,k,TEMP_INDX),
-                                                         phi_arr(i,j,k,VFRAC_INDX));
+               amrex::Real sigma=mflo_thermo::conductivity(phi_arr(i,j,k,TEMP_INDX),
+                                                         phi_arr(i,j,k,VFRAC_INDX),phi_arr(i,j,k,FLO_NVARS+AR_ID),phi_arr(i,j,k,FLO_NVARS+H2_ID));
                 amrex::Real J=sigma*phi_arr(i,j,k,EFLDX_INDX+dircn);
                 //negative sign already accounted for in the diff term
                 rhs_arr(i,j,k)+=MU0*J; 

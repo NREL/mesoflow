@@ -16,10 +16,13 @@
 #include <AMReX_PlotFileUtil.H>
 using namespace amrex;
 
-extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator visc_inter;
-extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator thcond_inter;
-extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator sig_inter;
+extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator visc_AR_inter;
+extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator thcond_AR_inter;
+extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator sig_AR_inter;
 extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator e_AR_inter;
+extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator visc_H2_inter;
+extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator thcond_H2_inter;
+extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator sig_H2_inter;
 extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator e_H2_inter;
 
 namespace mflo_thermo
@@ -66,7 +69,7 @@ namespace mflo_thermo
 		}
 		else{                                                     //do interpolation
 	
-			rhoe += spec[AR_ID]*mflo_species::molwts[AR_ID]*e_AR_inter.interpolate(temp);
+			rhoe += spec[AR_ID]*mflo_species::molwts[AR_ID]*e_AR_inter.interpolate(temp);  //-v internal energy/kg basis
 			
 			rhoe += spec[H2_ID]*mflo_species::molwts[H2_ID]*e_H2_inter.interpolate(temp);
 		}
@@ -78,7 +81,6 @@ namespace mflo_thermo
         
         rhoe += spec[H_ID]*RU/(gama_h-1.0)*temp;
         rhoe += spec[H2O_ID]*RU/(gama_h2o-1.0)*temp;
-        
         return(rhoe);
     }
 
@@ -205,11 +207,11 @@ namespace mflo_thermo
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    Real conductivity(Real temp,Real vfrac)
+    Real conductivity(Real temp,Real vfrac,Real AR_conc, Real H2_conc)
     {
         Real sig_solid=1.0; //FIX: for FEO
-        Real sig_gas=(1+std::tanh(0.0005*(temp-7000.0)))*1000.0+1.0;
-        //Real sig_gas=sig_inter.interpolate(temp);  
+        //Real sig_gas=(1+std::tanh(0.0005*(temp-7000.0)))*1000.0+1.0;
+        Real sig_gas= (AR_conc*std::max(sig_AR_inter.interpolate(temp), 1e-1) + H2_conc*std::max(sig_H2_inter.interpolate(temp), 1e-1) )/ (AR_conc + H2_conc);      
         Real sig=vfrac*sig_gas+(1.0-vfrac)*sig_solid;
         return(sig);
     }

@@ -59,20 +59,10 @@ namespace mflo_user_funcs
             Real lscale=10*dx[1];
             Real trans_scale=20.0;
             Real sponge_fac=0.5*(1.0+std::tanh((amrex::Math::abs(y)-mflo_user_funcs::sponge_zone_dist)/lscale));
-            Real visc, thcond;
-			if(phi(i,j,k,TEMP_INDX) < 300 || phi(i,j,k,TEMP_INDX) > 30000){ 
-				
-					//from Boulos text book, page 1832
-					//approximate fit for Ar+10% Fe
-					Real scaled_temp=phi(i,j,k,TEMP_INDX)/1000.0;
-					visc=(3.1*(scaled_temp)*exp(-std::pow((scaled_temp-6),2.0)/50.0)+2.5)*1e-5;
-					thcond=0.006*std::pow(scaled_temp,2.0)+0.02;
-				}
-			else{
-				
-				visc =visc_inter.interpolate(phi(i,j,k,TEMP_INDX));
-				thcond = thcond_inter.interpolate(phi(i,j,k,TEMP_INDX));
-			}
+            		
+			Real visc = (phi(i,j,k,FLO_NVARS+AR_ID)*visc_AR_inter.interpolate(phi(i,j,k,TEMP_INDX)) + phi(i,j,k,FLO_NVARS+H2_ID)*visc_H2_inter.interpolate(phi(i,j,k,TEMP_INDX)))/ ( phi(i,j,k,FLO_NVARS+AR_ID) + phi(i,j,k,FLO_NVARS+H2_ID));
+			Real thcond = (phi(i,j,k,FLO_NVARS+AR_ID)*thcond_AR_inter.interpolate(phi(i,j,k,TEMP_INDX)) + phi(i,j,k,FLO_NVARS+H2_ID)*thcond_H2_inter.interpolate(phi(i,j,k,TEMP_INDX)))/ ( phi(i,j,k,FLO_NVARS+AR_ID) + phi(i,j,k,FLO_NVARS+H2_ID));
+			
 
             transpcoeffs(i,j,k,VISC_INDX  ) = visc*(1.0+sponge_fac*trans_scale);       //viscosity
             transpcoeffs(i,j,k,THCOND_INDX) = thcond*(1.0+sponge_fac*trans_scale); //thermal conductivity
@@ -90,7 +80,7 @@ namespace mflo_user_funcs
         {
             source(i,j,k,nc)=zeroval;   
         }
-        amrex::Real sig=mflo_thermo::conductivity(phi(i,j,k,TEMP_INDX),phi(i,j,k,VFRAC_INDX));
+        amrex::Real sig=mflo_thermo::conductivity(phi(i,j,k,TEMP_INDX),phi(i,j,k,VFRAC_INDX),phi(i,j,k,FLO_NVARS+AR_ID),phi(i,j,k,FLO_NVARS+H2_ID));
         amrex::Real Esq=phi(i,j,k,EFLDX_INDX)*phi(i,j,k,EFLDX_INDX) +
         phi(i,j,k,EFLDY_INDX)*phi(i,j,k,EFLDY_INDX) +
         phi(i,j,k,EFLDZ_INDX)*phi(i,j,k,EFLDZ_INDX);
@@ -141,14 +131,14 @@ namespace mflo_user_funcs
         ghost_cell[dir]+=gcell_adjust;
         cell_int[dir]+=cell_adjust;
 
-        if(sgn == 1 && dir==0) 
+        if(sgn == 1 && dir==0) //-v x_high dirichlet 0
         { 
 
             robin_a(ghost_cell) = 1.0;
             robin_b(ghost_cell) = 0.0;
             robin_f(ghost_cell) = 0.0;
         }
-        else if(sgn == -1 && dir==0)
+        else if(sgn == -1 && dir==0)  // -v x_low
         {
             // lo sides
             amrex::Real electrode_rad=mflo_user_funcs::pin_size;
@@ -160,22 +150,22 @@ namespace mflo_user_funcs
 
             amrex::Real loc_rad=x[0]*x[0]+x[1]*x[1]+x[2]*x[2];
             loc_rad -= x[dir]*x[dir];
-            loc_rad=std::sqrt(loc_rad);
+            loc_rad=std::sqrt(loc_rad);   
 
-            if(loc_rad < electrode_rad)
+            if(loc_rad < electrode_rad)     
             {
-                if(mflo_user_funcs::pin_VI_flag==0)
+                if(mflo_user_funcs::pin_VI_flag==0)   //-v dirichlet pin_voltage
                 {
                     robin_a(ghost_cell) = 1.0;
                     robin_b(ghost_cell) = 0.0;
                     robin_f(ghost_cell) = mflo_user_funcs::pin_voltage;
                 }
                 else
-                {
+                {                                   //-v fixed gradient
                     robin_a(ghost_cell) = 0.0;
                     robin_b(ghost_cell) = 1.0;
                     Real temp=phi(cell_int,TEMP_INDX);
-                    Real sig=mflo_thermo::conductivity(temp,phi(cell_int,VFRAC_INDX));
+                    Real sig=mflo_thermo::conductivity(temp,phi(cell_int,VFRAC_INDX),phi(i,j,k,FLO_NVARS+AR_ID),phi(i,j,k,FLO_NVARS+H2_ID));
                     robin_f(ghost_cell) = mflo_user_funcs::pin_currentden/sig;
                 }
             }
@@ -216,7 +206,7 @@ namespace mflo_user_funcs
                           GpuArray<Real, AMREX_SPACEDIM> dx,
                           const Real time)
     {
-        dcoeff(i,j,k)=mflo_thermo::conductivity(phi(i,j,k,TEMP_INDX),phi(i,j,k,VFRAC_INDX));
+        dcoeff(i,j,k)=mflo_thermo::conductivity(phi(i,j,k,TEMP_INDX),phi(i,j,k,VFRAC_INDX),phi(i,j,k,FLO_NVARS+AR_ID),phi(i,j,k,FLO_NVARS+H2_ID));
     }
 
     AMREX_GPU_DEVICE AMREX_INLINE

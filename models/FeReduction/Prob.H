@@ -22,8 +22,8 @@ void initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomda
     Real spec[NUM_SPECIES]={zeroval};
     Real dummyspec[NUM_SPECIES]={zeroval};
         
-    Real mwbar = mflo_user_funcs::H2molfrac*mflo_species::molwts[H2_ID] +
-                     mflo_user_funcs::Hmolfrac*mflo_species::molwts[H_ID] +
+    Real mwbar = mflo_user_funcs::H2molfrac*mflo_species::molwts[H2_ID] +   //-v effective molecular weight (H, H2, Ar) applied
+                     mflo_user_funcs::Hmolfrac*mflo_species::molwts[H_ID] +                //everywhere in the domain
                      (1.0-mflo_user_funcs::H2molfrac-mflo_user_funcs::Hmolfrac)
                     *mflo_species::molwts[AR_ID];
 
@@ -100,7 +100,7 @@ void initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomda
 
                 //pure Ar in solid, strictly mwbar should be mw_argon
                 //but it wouldnt matter as we dont solve any fluid equations
-                spec[AR_ID]  = vfrac*totalconc*(1.0 - mflo_user_funcs::H2molfrac
+                spec[AR_ID]  = vfrac*totalconc*(1.0 - mflo_user_funcs::H2molfrac                         //-v AR species concentration
                                                 - mflo_user_funcs::Hmolfrac)+(1-vfrac)*totalconc;
                 spec[FEO_ID] = zeroval;
                 spec[FE2O3_ID] = (1.0-vfrac)*mflo_user_funcs::siteconc;
@@ -111,8 +111,8 @@ void initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomda
                 phi(i,j,k,RHOV_INDX) = phi(i,j,k,DENS_INDX)*phi(i,j,k,VELY_INDX);
                 phi(i,j,k,RHOW_INDX) = phi(i,j,k,DENS_INDX)*phi(i,j,k,VELZ_INDX);
 
-                if(vfrac>zeroval)
-                {
+                if(vfrac>zeroval)   //-v average conserved quantities for the cell are obtained since the conc of spices
+                {                                                      //multiplied by volfr
                     phi(i,j,k,RHOE_INDX)  = phi(i,j,k,DENS_INDX)*
                     mflo_thermo::get_e_from_rpc(phi(i,j,k,DENS_INDX),phi(i,j,k,PRES_INDX),spec);
 

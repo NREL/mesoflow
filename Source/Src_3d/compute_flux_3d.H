@@ -176,7 +176,7 @@ void compute_flux(int i, int j, int k,int sweepdir,
     ivp1[sweepdir]          += 1;
     ivp2[sweepdir]          += 2;
     
-    visc   = harmonic_mean(fluid_transpcoeffs(i,j,k,VISC_INDX),fluid_transpcoeffs(i-1,j,k,VISC_INDX)); 
+    visc   = harmonic_mean(fluid_transpcoeffs(i,j,k,VISC_INDX),fluid_transpcoeffs(i-1,j,k,VISC_INDX)); //-v average values of left and right cell
     thcond = harmonic_mean(fluid_transpcoeffs(i,j,k,THCOND_INDX),fluid_transpcoeffs(i-1,j,k,THCOND_INDX));
     for(int sp=0;sp<NUM_SPECIES;sp++)
     {

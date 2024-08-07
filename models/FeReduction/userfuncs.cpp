@@ -1,10 +1,13 @@
 #include<userfuncs.H>
 #include <AMReX_ParmParse.H>
 
-AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator visc_inter;
-AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator thcond_inter;
-AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator sig_inter;
+AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator visc_AR_inter;
+AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator thcond_AR_inter;
+AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator sig_AR_inter;
 AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator e_AR_inter;
+AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator visc_H2_inter;
+AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator thcond_H2_inter;
+AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator sig_H2_inter;
 AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator e_H2_inter;
 
 namespace mflo_user_funcs
@@ -64,12 +67,16 @@ namespace mflo_user_funcs
         
 
         
-        Real massFr = 0.1; //mass fraction of Fe in Ar
-        visc_inter.define("data_visc.txt",(massFr*10)+1);
-        thcond_inter.define("data_thc.txt",(massFr*10)+1);
-        sig_inter.define("data_sig.txt",5);  
+        
+        visc_AR_inter.define("data_visc_AR.txt",1);
+        thcond_AR_inter.define("data_thcond_AR.txt",1);
+        sig_AR_inter.define("data_sig_AR.txt",1);  
         e_AR_inter.define("data_e_AR.txt",1);
-		e_H2_inter.define("data_e_H2.txt",1);
+        visc_H2_inter.define("data_visc_H2.txt",1);
+        thcond_H2_inter.define("data_thcond_H2.txt",1);
+        sig_H2_inter.define("data_sig_H2.txt",1);  
+        e_H2_inter.define("data_e_H2.txt",1);       
+		
 	
     }
 }

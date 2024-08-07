@@ -598,7 +598,7 @@ void mflo::compute_dsdt_flow(
             FArrayBox source_fab(bx,TOTAL_NVARS); //external sources
             source_fab.setVal<RunOn::Device>(zeroval);
 
-            Elixir fluid_transport_fab_eli = fluid_transport_fab.elixir();
+            Elixir fluid_transport_fab_eli = fluid_transport_fab.elixir();  //-v Exlixir, makes the variable available to GPU
             Elixir specdiff_fab_eli = specdiff_fab.elixir();
             Elixir source_fab_eli = source_fab.elixir();
 
@@ -627,7 +627,7 @@ void mflo::compute_dsdt_flow(
             });
 
             amrex::ParallelFor(
-                amrex::growHi(bx, 0, 1),
+                amrex::growHi(bx, 0, 1),  //-v direction and ncell
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) {
                     compute_flux(
                         i, j, k, XDIR, sborder_arr, fluid_transport_arr, 
