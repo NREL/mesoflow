@@ -1,0 +1,120 @@
+max_step  = 2000000
+stop_time = 500
+
+# PROBLEM SIZE & GEOMETRY
+geometry.is_periodic =  0  0  0
+geometry.coord_sys   =  0       # 0 => cart
+geometry.prob_lo     =   -1.0e-2   -1.0e-2  -1.0e-2
+geometry.prob_hi     =    1.0e-2    1.0e-2   1.0e-2
+amr.n_cell           =   128 128 128
+
+# VERBOSITY
+amr.v              = 1       # verbosity in Amr
+
+# REFINEMENT
+amr.max_level       = 0       # maximum level number allowed
+amr.blocking_factor = 4       # block factor in grid generation
+amr.max_grid_size   =32
+
+
+amr.regrid_int      = 5       # how often to regrid
+
+# TIME STEP CONTROL
+mflo.cfl            = 0.1    # cfl number for hyperbolic system
+                             # In this test problem, the velocity is
+			     # time-dependent.  We could use 0.9 in
+			     # the 3D test, but need to use 0.7 in 2D
+			     # to satisfy CFL condition.
+
+mflo.do_reflux = 1
+
+#periodic 0
+#extdir 3
+#foextrap 2 
+#wall 6
+
+mflo.lo_bc = 3 2 2
+mflo.hi_bc = 3 2 2
+
+mflo.order_hyp = 5
+#mflo.dissfactor = 0.1
+mflo.potential_solve = 1
+mflo.potential_solve_int = 1
+mflo.magnetic_potential_solve=1
+mflo.magnetic_pot_solve_int=1
+
+mflo.potsolve.max_iter=2000
+mflo.potsolve.reltol=1e-7
+mflo.potsolve.abstol=1e-8
+mflo.potsolve.use_hypre=1
+
+mflo.hypre.hypre_solver=GMRES
+mflo.hypre.hypre_preconditioner=BoomerAMG
+
+mflo.hypre.num_krylov = 200
+mflo.hypre.max_iterations = 200
+mflo.hypre.bamg_verbose = 0
+mflo.hypre.bamg_coarsen_type = 8
+mflo.hypre.bamg_interp_type = 6
+mflo.hypre.bamg_relax_type = 11
+mflo.hypre.bamg_num_sweeps = 2
+mflo.hypre.bamg_cycle_type = 1
+mflo.hypre.bamg_relax_order = 0
+mflo.hypre.bamg_keep_transpose = 1
+mflo.hypre.bamg_trunc_factor = 0.44351885396256086
+mflo.hypre.bamg_strong_threshold = 0.30015419030906665
+mflo.hypre.bamg_pmax_elmts = 4
+
+mflo.hypre.bamg_agg_num_levels = 3
+mflo.hypre.bamg_agg_interp_type = 5
+mflo.hypre.bamg_agg_pmax_elmts = 5
+
+mflo.hypre.bamg_smooth_type = 5
+mflo.hypre.bamg_smooth_num_sweeps = 1
+mflo.hypre.bamg_smooth_num_levels = 1
+mflo.hypre.bamg_ilu_type = 0
+mflo.hypre.bamg_ilu_level = 0
+mflo.hypre.bamg_ilu_max_iter = 1
+mflo.hypre.bamg_ilu_reordering_type = 0
+mflo.hypre.bamg_ilu_tri_solve = 0
+mflo.hypre.bamg_ilu_lower_jacobi_iters = 13
+mflo.hypre.bamg_ilu_upper_jacobi_iters = 5
+
+# Tagging
+mflo.tagged_vars = FEO vely temperature
+mflo.FEO_refine = 1000
+mflo.FEO_refinegrad = 1e20
+mflo.vely_refine = 400.0
+mflo.vely_refinegrad = 1e20
+mflo.temperature_refine = 3000.0
+mflo.temperature_refinegrad = 1e20
+
+# PLOTFILES
+amr.plot_file  = plt    # root name of plot file
+amr.plot_int   = 2000     # number of timesteps between plot files
+
+# CHECKPOINT
+amr.chk_file = chk      # root name of checkpoint file
+amr.chk_int  = 10000       # number of timesteps between checkpoint files
+
+#if you want to run the production case, turn these on
+#amr.n_cell           =   512  512    512
+#amr.max_grid_size   = 32
+#max_step  = 200000000
+
+mflo.conjugate_heat_transfer=1
+user.fs_vel=1000.0
+user.p0=1e5
+mflo.species_in_solid=1
+user.catblocksize=25e-4
+user.Tinit=500
+user.Tjet=5000
+user.jetrad=0.0
+user.interface_ampl=0.0
+user.interface_freq=60
+user.sponge_zone_dist=8.75e-3
+user.pin_size=2.0e-4
+user.pin_VI_flag=1
+user.pin_currentden=6e6
+user.Hmolfrac=0.0
+user.H2molfrac=0.1
