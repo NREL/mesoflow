@@ -26,10 +26,22 @@ see Crowley et al.,Frontiers in Energy Research 10 (https://www.frontiersin.org/
 * This tool depends on the AMReX library - which is included as a submodule
 * go to any of the test cases in tests or model folder (e.g. cd models/blockCatalyst1d)
 * build executable using the GNUMakefile - do $make for CPU build or do $make USE_CUDA=TRUE for GPU build
-* To enable implicit chemistry, this solver also requires SUNDIALS, please download the latest release (SUNDIALS v xyz)
-from (https://computing.llnl.gov/projects/sundials/sundials-software) and follow the installation instructions in
-(https://sundials.readthedocs.io/en/latest/Install_link.html). Compile with $make USE_SUNDIALS=TRUE after setting
-the appropriate installation path as SUNDIALS_ROOT in either the shell or in the GNUmakefile.
+* To enable implicit chemistry, this solver also requires SUNDIALS:
+
+  ```
+  git clone https://github.com/LLNL/sundials
+  make a folder in your favorite location
+  mkdir <sundials_build>
+  cmake ../sundials -DCMAKE_INSTALL_PREFIX=<path_to_sundials_build> -DEXAMPLES_INSTALL_PATH=<path_to_sundials_build>
+  cd <path_to_sundials_build>
+  make -j
+  make install
+  ```
+
+Compile with $make USE_SUNDIALS=TRUE after setting
+the appropriate installation path as SUNDIALS_ROOT in either the shell or in the GNUmakefile. See
+models/blockCatalyst1d/GNUMakefile and models/blockCatalyst1d/inputs_x to enable sundials
+by using integration.type=SUNDIALS
 
 # Run instructions
 
