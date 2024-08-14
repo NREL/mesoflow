@@ -59,12 +59,17 @@ namespace mflo_thermo
         Real gama_h2o=1.2;
         Real gama_h=1.66;
         Real tempk=temp/1000.0;
+         
+         
+                 //rhoe += spec[AR_ID]*mflo_species::molwts[AR_ID]*
+        //(0.31492*tempk+170.0*exp(-0.007*(tempk-35.0)*(tempk-35.0)))*1e6;
+        //rhoe += spec[H2_ID]*mflo_species::molwts[H2_ID]*
+        //(3.0*tempk+2500.0*exp(-0.008*(tempk-25.0)*(tempk-25.0)))*1e6;
                                                    
-	
-		rhoe += spec[AR_ID]*mflo_species::molwts[AR_ID]*e_AR_inter.interpolate(temp);  //-v internal energy/kg basis
-			
+		
+		rhoe += spec[AR_ID]*mflo_species::molwts[AR_ID]*e_AR_inter.interpolate(temp);  //-v internal energy/kg basis	
 		rhoe += spec[H2_ID]*mflo_species::molwts[H2_ID]*e_H2_inter.interpolate(temp);
-		  
+
         
         rhoe += spec[H_ID]*RU/(gama_h-1.0)*temp;
         rhoe += spec[H2O_ID]*RU/(gama_h2o-1.0)*temp;
@@ -101,7 +106,7 @@ namespace mflo_thermo
         {
             amrex::Print()<<"energy solve not converging\n";
         }
-        //amrex::Print()<<"T:"<<tn<<"\n";
+        //amrex::Print()<<"T from rhoe is"<<tn<<"\n";
         //amrex::Print()<<"\n============\n";
         return(tn);
     }

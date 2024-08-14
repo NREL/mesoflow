@@ -101,13 +101,13 @@ public:
            amrex::Real ans2 = y_values[i] + dx*(y_values[i+1] - y_values[i])/(x_values[i+1] - x_values[i]);
            if (ans2 < 1.0e-18L)
            {
-            std::cerr << "Caution overshooting, include more data points, returning the average value" << std::endl; 
-            std::cerr << "temp" <<x_interpolate<<"\t"<<"value"<< 0.5*(y_values[i] + y_values[i+1])<<std::endl; 
+            //std::cerr << "Caution overshooting, include more data points, returning the average value" << std::endl; 
+            //std::cerr << "temp" <<x_interpolate<<"\t"<<"value"<< 0.5*(y_values[i] + y_values[i+1])<<std::endl; 
             return 0.5*(y_values[i] + y_values[i+1]) ;
            }
            else{
-            std::cerr << "Caution overshooting, include more data points, preforming linear interpolation." << std::endl; 
-            std::cerr << "temp" <<x_interpolate<<"\t"<<"value"<< ans2<<std::endl; 
+            //std::cerr << "Caution overshooting, include more data points, preforming linear interpolation." << std::endl; 
+            //std::cerr << "temp" <<x_interpolate<<"\t"<<"value"<< ans2<<std::endl; 
             return ans2;
            }
 
