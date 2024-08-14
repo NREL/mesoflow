@@ -27,7 +27,7 @@ namespace mflo_user_funcs
         {
             Real volfrac=phi(i,j,k,VFRAC_INDX);
             transpcoeffs(i,j,k,VISC_INDX  ) = 0.01; //viscosity
-            transpcoeffs(i,j,k,THCOND_INDX) = 50.0*volfrac+500.0*(1.0-volfrac); //thermal conductivity
+            transpcoeffs(i,j,k,THCOND_INDX) = 500.0*volfrac+5000.0*(1.0-volfrac); //thermal conductivity
         }
 
     AMREX_GPU_DEVICE AMREX_INLINE
