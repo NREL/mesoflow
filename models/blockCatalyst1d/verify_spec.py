@@ -43,7 +43,7 @@ print(A,B,c1)
 #Plot solutions
 #=======================================
 fig,ax=plt.subplots(2,2,figsize=(8,4))
-ax[0][0].plot(x,exactsoln,'r-',label="Exact solution")
+ax[0][0].plot(x,exactsoln,'r-',label="Exact solution",linewidth=3)
 ax[0][0].plot(x,fld_S1,'k*',label="mflo",markersize=2)
 ax[0][0].legend(loc="best")
 

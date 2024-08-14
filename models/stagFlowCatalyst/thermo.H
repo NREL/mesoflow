@@ -20,7 +20,9 @@ namespace mflo_thermo
     {
         //modify if conjugate heat transfer 
         //included
-        amrex::Real temp=300.0;
+        amrex::Real Cv_solid=100.0;
+        amrex::Real rho_solid=2000.0;
+        amrex::Real temp=rhoe/(rho_solid*Cv_solid);
         return(temp);
     }
     
@@ -29,8 +31,8 @@ namespace mflo_thermo
     {
         //modify if conjugate 
         //heat transfer included
-        amrex::Real Cv_solid=1.0;
-        amrex::Real rho_solid=1.0;
+        amrex::Real Cv_solid=100.0;
+        amrex::Real rho_solid=2000.0;
         return(rho_solid*Cv_solid*temp);
     }
     AMREX_GPU_HOST_DEVICE AMREX_INLINE

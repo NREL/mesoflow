@@ -89,27 +89,27 @@ void initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomda
                 phi(i,j,k,RHOV_INDX) = phi(i,j,k,DENS_INDX)*phi(i,j,k,VELY_INDX);
                 phi(i,j,k,RHOW_INDX) = phi(i,j,k,DENS_INDX)*phi(i,j,k,VELZ_INDX);
 
-                if(vfrac==one)
+                if(vfrac>zeroval)
                 {
                    phi(i,j,k,TEMP_INDX) = mflo_thermo::get_t_from_rpc(
                         phi(i,j,k,DENS_INDX),phi(i,j,k,PRES_INDX),spec);
 
-                        phi(i,j,k,RHOE_INDX)  = phi(i,j,k,DENS_INDX)*
+                    phi(i,j,k,RHOE_INDX)  = phi(i,j,k,DENS_INDX)*
                     mflo_thermo::get_e_from_rpc(phi(i,j,k,DENS_INDX),phi(i,j,k,PRES_INDX),spec);
+                
+                    phi(i,j,k,RHOE_INDX) += half*phi(i,j,k,DENS_INDX)*
+                                        ( phi(i,j,k,VELX_INDX)*phi(i,j,k,VELX_INDX)
+                                        + phi(i,j,k,VELY_INDX)*phi(i,j,k,VELY_INDX)
+                                        + phi(i,j,k,VELZ_INDX)*phi(i,j,k,VELZ_INDX) );
                 }
                 else
                 {
                    phi(i,j,k,TEMP_INDX) = mflo_thermo::get_t_from_rpc(
                         phi(i,j,k,DENS_INDX),phi(i,j,k,PRES_INDX),dummyspec);
                    
-                   phi(i,j,k,RHOE_INDX)  = phi(i,j,k,DENS_INDX)*
-                    mflo_thermo::get_e_from_rpc(phi(i,j,k,DENS_INDX),phi(i,j,k,PRES_INDX),dummyspec);
+                   phi(i,j,k,RHOE_INDX)  = mflo_thermo::get_solid_rhoe_from_t(phi(i,j,k,TEMP_INDX));
                 }
 
-                phi(i,j,k,RHOE_INDX) += half*phi(i,j,k,DENS_INDX)*
-                                        ( phi(i,j,k,VELX_INDX)*phi(i,j,k,VELX_INDX)
-                                        + phi(i,j,k,VELY_INDX)*phi(i,j,k,VELY_INDX)
-                                        + phi(i,j,k,VELZ_INDX)*phi(i,j,k,VELZ_INDX) );
 
                 if(vfrac>zeroval)
                 {

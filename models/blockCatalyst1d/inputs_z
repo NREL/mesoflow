@@ -37,7 +37,7 @@ mflo.lo_bc = 6 6 3
 mflo.hi_bc = 6 6 3
 
 # Tagging
-mflo.tagged_vars = volfrac S1 S2
+mflo.tagged_vars = volfrac
 mflo.S1_refine = 1e20
 mflo.S2_refine = 0.11
 mflo.S1_refinegrad = 0.1

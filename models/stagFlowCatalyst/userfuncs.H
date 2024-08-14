@@ -33,8 +33,9 @@ namespace mflo_user_funcs
                 GpuArray<Real, AMREX_SPACEDIM> dx,
                 const Real time)
         {
+            Real volfrac=phi(i,j,k,VFRAC_INDX);
             transpcoeffs(i,j,k,VISC_INDX  ) = 1e-5;       //viscosity
-            transpcoeffs(i,j,k,THCOND_INDX) = 0.01; //thermal conductivity
+            transpcoeffs(i,j,k,THCOND_INDX) = 0.01*volfrac+50.0*(1-volfrac); //thermal conductivity
         }
 
     AMREX_GPU_DEVICE AMREX_INLINE

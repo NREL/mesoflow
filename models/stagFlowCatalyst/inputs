@@ -46,6 +46,8 @@ mflo.volfrac_refinegrad = 0.1
 mflo.vely_refine = 4.0
 mflo.vely_refinegrad = 1e20
 
+mflo.conjugate_heat_transfer=1
+
 # PLOTFILES
 amr.plot_file  = plt    # root name of plot file
 amr.plot_int   = 4000     # number of timesteps between plot files
