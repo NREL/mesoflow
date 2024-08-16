@@ -6,13 +6,13 @@ geometry.is_periodic =  0  0  1
 geometry.coord_sys   =  0       # 0 => cart
 geometry.prob_lo     =   -18e-3   -18e-3      -0.28125e-3
 geometry.prob_hi     =    18e-3    18e-3   0.28125e-3
-amr.n_cell           =   256  256 4
+amr.n_cell           =   128  128 4
 
 # VERBOSITY
 amr.v              = 1       # verbosity in Amr
 
 # REFINEMENT
-amr.max_level       = 0       # maximum level number allowed
+amr.max_level       = 1       # maximum level number allowed
 amr.blocking_factor = 4       # block factor in grid generation
 amr.max_grid_size   = 32
 
@@ -34,17 +34,19 @@ mflo.do_reflux = 1
 #wall 6
 
 mflo.lo_bc = 3 2 0
-mflo.hi_bc = 2 2 0
+mflo.hi_bc = 3 2 0
 
 mflo.order_hyp = 5
 #mflo.dissfactor = 0.1
 
 # Tagging
-mflo.tagged_vars = volfrac vely
+mflo.tagged_vars = volfrac vely velx
 mflo.volfrac_refine = 1e20
 mflo.volfrac_refinegrad = 0.1
-mflo.vely_refine = 4.0
+mflo.vely_refine = 2.0
 mflo.vely_refinegrad = 1e20
+mflo.velx_refine = 5.0
+mflo.velx_refinegrad = 1e20
 
 mflo.conjugate_heat_transfer=1
 
@@ -64,5 +66,7 @@ amr.chk_int  = 10000       # number of timesteps between checkpoint files
 user.fs_vel=10.0
 user.rho0=1.16
 user.p0=1e5
+user.jetrad=5e-4
 user.CH4conc=1e-4
 mflo.species_in_solid=1
+mflo.catblocksize=4e-3

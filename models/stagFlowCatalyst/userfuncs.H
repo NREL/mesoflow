@@ -22,6 +22,7 @@ namespace mflo_user_funcs
     extern AMREX_GPU_DEVICE_MANAGED Real CH4conc;
     extern AMREX_GPU_DEVICE_MANAGED Real siteconc;
     extern AMREX_GPU_DEVICE_MANAGED Real jetrad;
+    extern AMREX_GPU_DEVICE_MANAGED Real Tsolid;
 
     void initialize_problem();
 

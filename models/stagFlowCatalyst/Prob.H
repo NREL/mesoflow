@@ -57,7 +57,8 @@ void initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomda
                 }
 
                 vfrac*=eighth;
-                phi(i,j,k,VFRAC_INDX) = vfrac;
+                phi(i,j,k,VFRAC_INDX)=vfrac;
+                
                 if(vfrac < one)
                 {
                     phi(i,j,k,VELX_INDX) =  zeroval;
@@ -104,9 +105,7 @@ void initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomda
                 }
                 else
                 {
-                   phi(i,j,k,TEMP_INDX) = mflo_thermo::get_t_from_rpc(
-                        phi(i,j,k,DENS_INDX),phi(i,j,k,PRES_INDX),dummyspec);
-                   
+                   phi(i,j,k,TEMP_INDX) = mflo_user_funcs::Tsolid;
                    phi(i,j,k,RHOE_INDX)  = mflo_thermo::get_solid_rhoe_from_t(phi(i,j,k,TEMP_INDX));
                 }
 
