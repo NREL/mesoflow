@@ -107,6 +107,9 @@ void mflo::WriteCheckpointFile() const
         // write out finest_level
         HeaderFile << finest_level << "\n";
 
+		//write current
+		HeaderFile << current << "\n";
+		
         // write out array of istep
         for (int i = 0; i < istep.size(); ++i) 
         {
@@ -169,6 +172,10 @@ void mflo::ReadCheckpointFile()
     is >> finest_level;
     GotoNextLine(is);
 
+	//read in current
+	is >> current;
+	GotoNextLine(is);
+	
     // read in array of istep
     std::getline(is, line);
     {

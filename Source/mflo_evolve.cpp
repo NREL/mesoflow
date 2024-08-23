@@ -26,6 +26,7 @@ void mflo::EvolveAMR(Real final_time, bool only_flow)
         
         if (potential_solve == 1 && step % pot_solve_int == 0)
         {
+			
             solve_potential(cur_time);
         }
         if (mag_potential_solve == 1 && step % mag_pot_solve_int == 0)

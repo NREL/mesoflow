@@ -163,12 +163,15 @@ void mflo::solve_potential(Real current_time)
             auto prob_lo = geom[ilev].ProbLoArray();
             auto prob_hi = geom[ilev].ProbHiArray();
             const Box& domain = geom[ilev].Domain();
-
+	
+			MultiFab& state = phi_new[ilev];
+			
             Real time = current_time; // for GPU capture
 
             Array4<Real> phi_arr = Sborder.array(mfi);
             Array4<Real> rhs_arr = rhs[ilev].array(mfi);
             Array4<Real> bcoeff_arr = bcoeff[ilev].array(mfi);
+            Array4<Real> state_arr = state.array(mfi);
 
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 
@@ -178,7 +181,7 @@ void mflo::solve_potential(Real current_time)
                                                        dx, time);
 
                 mflo_user_funcs::potential_dcoeff(i, j, k, phi_arr, 
-                                                  bcoeff_arr, prob_lo, prob_hi, 
+                                                  bcoeff_arr,state_arr, prob_lo, prob_hi, 
                                                   dx, time);
             });
         }
@@ -191,6 +194,10 @@ void mflo::solve_potential(Real current_time)
                                                 IntVect::TheDimensionVector(idim));
             face_bcoeff[idim].define(ba, acoeff[ilev].DistributionMap(), 1, 0);
         }
+     
+		
+		bcoeff[ilev].FillBoundary(); // fill the ghost cells before taking average
+		
         amrex::average_cellcenter_to_face(GetArrOfPtrs(face_bcoeff),
                                           bcoeff[ilev], geom[ilev], true);
         // set boundary conditions
@@ -207,11 +214,19 @@ void mflo::solve_potential(Real current_time)
             Array4<Real> robin_a_arr = robin_a[ilev].array(mfi);
             Array4<Real> robin_b_arr = robin_b[ilev].array(mfi);
             Array4<Real> robin_f_arr = robin_f[ilev].array(mfi);
+			
+			Vector<Array4<Real>> face_bcoeff_arr(AMREX_SPACEDIM);
+			
+			for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+				face_bcoeff_arr[idim] =  face_bcoeff[idim].array(mfi);
+			}
 
             Real time = current_time; // for GPU capture
 
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
+				
                 //note: bdryLo/bdryHi grabs the face indices from bx that are the boundary
                 //since they are face indices, the bdry normal index is 0/n+1, n is number of cells
                 //so the ghost cell index at left side is i-1 while it is i on the right
@@ -221,8 +236,13 @@ void mflo::solve_potential(Real current_time)
 
                         mflo_user_funcs::potential_bc(i, j, k, idim, -1, 
                                                       phi_arr, robin_a_arr, 
-                                                      robin_b_arr, robin_f_arr, 
+                                                      robin_b_arr, robin_f_arr, current,
                                                       prob_lo, prob_hi, dx, time);
+                                                      
+                                                      
+                      // changing the face_bcoeff at the boundary faces
+                      mflo_user_funcs::update_bndry_face_bcoeff(i, j, k, idim, -1,phi_arr,
+                                                      face_bcoeff_arr[idim],  prob_lo, prob_hi, dx, time); 
                     });
                 }
                 if (bx.bigEnd(idim) == domain.bigEnd(idim))
@@ -230,8 +250,13 @@ void mflo::solve_potential(Real current_time)
                     amrex::ParallelFor(amrex::bdryHi(bx, idim), [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
                         mflo_user_funcs::potential_bc(i, j, k, idim, +1, 
                                                       phi_arr, robin_a_arr, 
-                                                      robin_b_arr, robin_f_arr, 
+                                                      robin_b_arr, robin_f_arr, current, 
                                                       prob_lo, prob_hi, dx, time);
+                                                      
+					  // changing the face_bcoeff at the boundary faces
+                      mflo_user_funcs::update_bndry_face_bcoeff(i, j, k, idim, +1, phi_arr,
+                                                      face_bcoeff_arr[idim],  prob_lo, prob_hi, dx, time);     
+                                                                              
                     });
                 }
             }
@@ -271,6 +296,7 @@ void mflo::solve_potential(Real current_time)
     amrex::Print()<<"Solved Potential\n";
     
     Vector<Array<MultiFab, AMREX_SPACEDIM>> gradsoln(finest_level+1);
+    Vector<Array<MultiFab, AMREX_SPACEDIM>> flux(finest_level+1);
     for (int ilev = 0; ilev <= finest_level; ilev++)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
@@ -278,9 +304,11 @@ void mflo::solve_potential(Real current_time)
             const BoxArray& faceba = amrex::convert(grids[ilev], 
                     IntVect::TheDimensionVector(idim));
             gradsoln[ilev][idim].define(faceba, dmap[ilev], 1, 0);
+            flux[ilev][idim].define(faceba, dmap[ilev], 1, 0);
         }
     }
     mlmg.getGradSolution(GetVecOfArrOfPtrs(gradsoln));
+    mlmg.getFluxes(GetVecOfArrOfPtrs(flux));
 
     for (int ilev = 0; ilev <= finest_level; ilev++)
     {
@@ -289,10 +317,50 @@ void mflo::solve_potential(Real current_time)
         const Array<const MultiFab*, AMREX_SPACEDIM> allgrad = {&gradsoln[ilev][0], 
             &gradsoln[ilev][1], &gradsoln[ilev][2]};
         average_face_to_cellcenter(phi_new[ilev], EFLDX_INDX, allgrad);
-        phi_new[ilev].mult(-1.0, EFLDX_INDX, 3);   //-v E = -gradphi
+        phi_new[ilev].mult(-1.0, EFLDX_INDX, 3);   //-v   E = -gradphi
+        
+        
     }
-
-
+    
+    //calculate current
+    amrex::Vector<amrex::MultiFab> tmp;
+	tmp.resize(finest_level+1);
+	for (int lev = 0; lev <= finest_level; ++lev)
+	{
+		
+		tmp[lev].define(flux[lev][0].boxArray(),flux[lev][0].DistributionMap(),flux[lev][0].nComp(),flux[lev][0].nGrow()); //-v only x face flux is important
+		tmp[lev].setVal(0.0);
+		for (amrex::MFIter mfi(phi_new[lev]); mfi.isValid(); ++mfi)     
+		{
+			const amrex::Box& bx = mfi.validbox();
+			const auto& tmpfab = tmp[lev].array(mfi);
+			const auto& fluxfab = flux[lev][0].array(mfi);
+			const auto dx     = Geom(lev).CellSizeArray();
+			const Box& domain = geom[lev].Domain(); 
+			
+			if (bx.bigEnd(0) == domain.bigEnd(0))
+                {
+                    amrex::ParallelFor(amrex::bdryHi(bx, 0), [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+		
+					tmpfab(i,j,k) = fabs(fluxfab(i,j,k) / dx[0]);       //-v division by dx[0] because we will take volume-weighted-sum next
+						                                                        
+				
+					});
+				}
+		}
+		
+	}
+	
+	current = volumeWeightedSum(GetVecOfConstPtrs(tmp), 0, geom, refRatio());
+	Print()<<"The Value of Currrent ............................... "<<current<<"\n";	
+		
+		
+		
+		
+		
+		
+		
+		
     //clean-up
     potential.clear();
     acoeff.clear();

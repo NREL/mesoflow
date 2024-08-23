@@ -24,6 +24,9 @@ extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator visc_H2_inter;
 extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator thcond_H2_inter;
 extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator sig_H2_inter;
 extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator e_H2_inter;
+extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator rad_inter;
+extern AMREX_GPU_DEVICE_MANAGED CubicSplineInterpolator t_from_e_inter;
+
 
 namespace mflo_thermo
 {
@@ -58,26 +61,21 @@ namespace mflo_thermo
         Real gama_h2o=1.2;
         Real gama_h=1.66;
         Real tempk=temp/1000.0;
-
-		if(temp < 400 || temp > 24000){
+        
+        if(temp < 100 || temp > 24000){
 			 
-			rhoe += spec[AR_ID]*mflo_species::molwts[AR_ID]*         //spec[AR_ID] represents (no of moles of Ar) / (volume)
+			rhoe += spec[AR_ID]*mflo_species::molwts[AR_ID]*         
 			(0.31492*tempk+170.0*exp(-0.007*(tempk-35.0)*(tempk-35.0)))*1e6;
 			
 			rhoe += spec[H2_ID]*mflo_species::molwts[H2_ID]*
 			(3.0*tempk+2500.0*exp(-0.008*(tempk-25.0)*(tempk-25.0)))*1e6;
-		}
-		else{                                                     //do interpolation
-	
-			rhoe += spec[AR_ID]*mflo_species::molwts[AR_ID]*e_AR_inter.interpolate(temp);  //-v internal energy/kg basis
+		}                                           
+	   else{
+	  
+		rhoe += spec[AR_ID]*mflo_species::molwts[AR_ID]*e_AR_inter.interpolate(temp);  //-v internal energy/kg basis
 			
-			rhoe += spec[H2_ID]*mflo_species::molwts[H2_ID]*e_H2_inter.interpolate(temp);
-		}
-        
-        
-        
-        
-        
+		rhoe += spec[H2_ID]*mflo_species::molwts[H2_ID]*e_H2_inter.interpolate(temp);
+		}  
         
         rhoe += spec[H_ID]*RU/(gama_h-1.0)*temp;
         rhoe += spec[H2O_ID]*RU/(gama_h2o-1.0)*temp;
@@ -92,30 +90,40 @@ namespace mflo_thermo
         Real tol=1e-7*tguess;
         Real fd_dt=1e-6*tguess; //finite diff dt
         Real delt_n=0.0;
-        //Newton method
-        for(int st=0;st<nsteps;st++)
-        {
-            Real re_t=get_re_from_ct(spec,tn);
-            Real re_tpdt=get_re_from_ct(spec,tn+fd_dt);
-            Real re_deriv=(re_tpdt-re_t)/fd_dt;
+        Real rho= (spec[AR_ID]*mflo_species::molwts[AR_ID]);
+        
+         if(re < 0.3033E+05*rho || re > 7.8405E+07*rho){
+			//Newton method
+			for(int st=0;st<nsteps;st++)
+			{
+				Real re_t=get_re_from_ct(spec,tn);
+				Real re_tpdt=get_re_from_ct(spec,tn+fd_dt);
+				Real re_deriv=(re_tpdt-re_t)/fd_dt;
 
-            Real func_T=re_t-re;
-            Real funcderiv_T=re_deriv;
-            delt_n=-func_T/funcderiv_T;
-            tn+=delt_n;
-            //amrex::Print()<<"st,delt_n,re_t,ret_tpdt,re:"<<st<<"\t"<<delt_n<<"\t"<<re_t<<"\t"<<re_tpdt<<"\t"<<re<<"\n";
-            if(amrex::Math::abs(delt_n)<tol)
-            {
-                //amrex::Print()<<"breaking early\n";
-                break;
-            }
-        }
-        if(amrex::Math::abs(delt_n) > 1000*tol)
-        {
-            amrex::Print()<<"energy solve not converging\n";
-        }
-        //amrex::Print()<<"T:"<<tn<<"\n";
-        //amrex::Print()<<"\n============\n";
+				Real func_T=re_t-re;
+				Real funcderiv_T=re_deriv;
+				delt_n=-func_T/funcderiv_T;
+				tn+=delt_n;
+				//amrex::Print()<<"st,delt_n,re_t,ret_tpdt,re:"<<st<<"\t"<<delt_n<<"\t"<<re_t<<"\t"<<re_tpdt<<"\t"<<re<<"\n";
+				if(amrex::Math::abs(delt_n)<tol)
+				{
+					//amrex::Print()<<"breaking early\n";
+					break;
+				}
+			}
+			if(amrex::Math::abs(delt_n) > 1000*tol)
+			{
+				amrex::Print()<<"energy solve not converging\n";
+			}
+			////amrex::Print()<<"T:"<<tn<<"\n";
+			////amrex::Print()<<"\n============\n";
+		}
+		
+		else{
+        Real e=re/rho;
+        tn =t_from_e_inter.interpolate(e);
+        //amrex::Print()<<" e is "<<e<<" T is "<<tn<<"\n";
+		}
         return(tn);
     }
 
@@ -209,36 +217,12 @@ namespace mflo_thermo
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     Real conductivity(Real temp,Real vfrac,Real AR_conc, Real H2_conc)
     {
-        Real sig_solid=1.0; //FIX: for FEO
-        Real sig_gas=(1+std::tanh(0.0005*(temp-7000.0)))*1000.0+1.0;
-        //Real sig_gas= (AR_conc*std::max(sig_AR_inter.interpolate(temp), 1e-1) + H2_conc*std::max(sig_H2_inter.interpolate(temp), 1e-1) )/ (AR_conc + H2_conc);      
+        Real sig_solid=10.5e6; 
+        //Real sig_gas=(1+std::tanh(0.0005*(temp-7000.0)))*1000.0+1.0;
+        Real sig_gas= (AR_conc*std::max(sig_AR_inter.interpolate(temp), 0.1) + H2_conc*std::max(sig_H2_inter.interpolate(temp), 0.1) )/ (AR_conc + H2_conc);    
         Real sig=vfrac*sig_gas+(1.0-vfrac)*sig_solid;
         return(sig);
     }
 }
 #endif
         
-//VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);        
-//std::ofstream outFile;
-//std::string FileName("AR.txt");
-//if(ParallelDescriptor::IOProcessor())
-			 //{
-					
-				   //outFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-				   //outFile.open(FileName.c_str(), std::ofstream::out   |
-												  //std::ofstream::app |
-												   //std::ofstream::binary); 
-														   
-					   //if( ! outFile.good()) {
-						//amrex::FileOpenFailed(FileName);
-						//}
-						
-					//Real tmp1 = 1.0*         //spec[AR_ID] represents (no of moles of Ar) / (volume)
-			//(0.31492*tempk+170.0*exp(-0.007*(tempk-35.0)*(tempk-35.0)))*1e6;
-			
-					//Real tmp2 = 1.0*e_AR_inter.interpolate(temp);
-					
-					//outFile <<temp<< "\t" <<tmp1<< "\t"<<tmp2<<"\n";	   
-			 //}			
-
-//outFile.close();

@@ -1,0 +1,43 @@
+Host Name: Legion
+=== If no file names and line numbers are shown below, one can run
+            addr2line -Cpfie my_exefile my_line_address
+    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.
+    Or one can use amrex/Tools/Backtrace/parse_bt.py.
+
+=== Please note that the line number reported by addr2line may not be accurate.
+    One can use
+            readelf -wl my_exefile | grep my_line_address'
+    to find out the offset for that line.
+
+ 0: ./mesoflow3d.gnu.MPI.ex(+0x208d20) [0x55e40a812d20]
+    amrex::BLBackTrace::print_backtrace_info(_IO_FILE*) at /usr/include/x86_64-linux-gnu/bits/unistd.h:284
+ (inlined by) amrex::BLBackTrace::print_backtrace_info(_IO_FILE*) at /home/legion/AMREX/amrex-tutorials/ExampleCodes/mysol/working/mesoflow/models/arcmodel/../../../mesoflow/../../../../../amrex/Src/Base/AMReX_BLBackTrace.cpp:199
+
+ 1: ./mesoflow3d.gnu.MPI.ex(+0x20ad48) [0x55e40a814d48]
+    amrex::BLBackTrace::handler(int) at /home/legion/AMREX/amrex-tutorials/ExampleCodes/mysol/working/mesoflow/models/arcmodel/../../../mesoflow/../../../../../amrex/Src/Base/AMReX_BLBackTrace.cpp:99
+
+ 2: ./mesoflow3d.gnu.MPI.ex(+0x8e073) [0x55e40a698073]
+    mflo::compute_dsdt_flow(int, int, amrex::MultiFab&, amrex::MultiFab&, double, double, double, bool) at /home/legion/AMREX/amrex-tutorials/ExampleCodes/mysol/working/mesoflow/models/arcmodel/../../../mesoflow/../../../../../amrex/Src/Base/AMReX_GpuLaunchFunctsC.H:235
+ (inlined by) mflo::compute_dsdt_flow(int, int, amrex::MultiFab&, amrex::MultiFab&, double, double, double, bool) at /home/legion/AMREX/amrex-tutorials/ExampleCodes/mysol/working/mesoflow/models/arcmodel/../../../mesoflow/Source/mflo_evolve.cpp:657
+
+ 3: ./mesoflow3d.gnu.MPI.ex(+0x96f02) [0x55e40a6a0f02]
+    mflo::Advance_coupled_strang(int, double, double, int, int, bool) at /home/legion/AMREX/amrex-tutorials/ExampleCodes/mysol/working/mesoflow/models/arcmodel/../../../mesoflow/Source/mflo_evolve.cpp:308
+
+ 4: ./mesoflow3d.gnu.MPI.ex(+0x976c8) [0x55e40a6a16c8]
+    std::vector<int, std::allocator<int> >::operator[](unsigned long) at /usr/include/c++/11/bits/stl_vector.h:1046
+ (inlined by) amrex::Vector<int, std::allocator<int> >::operator[](unsigned long) at /home/legion/AMREX/amrex-tutorials/ExampleCodes/mysol/working/mesoflow/models/arcmodel/../../../mesoflow/../../../../../amrex/Src/Base/AMReX_Vector.H:37
+ (inlined by) mflo::timeStep(int, double, int, bool) at /home/legion/AMREX/amrex-tutorials/ExampleCodes/mysol/working/mesoflow/models/arcmodel/../../../mesoflow/Source/mflo_evolve.cpp:235
+
+ 5: ./mesoflow3d.gnu.MPI.ex(+0x98b3b) [0x55e40a6a2b3b]
+    mflo::EvolveAMR(double, bool) at /home/legion/AMREX/amrex-tutorials/ExampleCodes/mysol/working/mesoflow/models/arcmodel/../../../mesoflow/Source/mflo_evolve.cpp:46
+
+ 6: ./mesoflow3d.gnu.MPI.ex(+0x2e207) [0x55e40a638207]
+    main at /home/legion/AMREX/amrex-tutorials/ExampleCodes/mysol/working/mesoflow/models/arcmodel/../../../mesoflow/Source/main.cpp:58
+
+ 7: /lib/x86_64-linux-gnu/libc.so.6(+0x29d90) [0x7efe3e814d90]
+
+ 8: /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x80) [0x7efe3e814e40]
+
+ 9: ./mesoflow3d.gnu.MPI.ex(+0x32855) [0x55e40a63c855]
+    ?? ??:0
+

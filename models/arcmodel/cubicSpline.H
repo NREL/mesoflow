@@ -11,11 +11,11 @@
 class CubicSplineInterpolator {
 public:
 	CubicSplineInterpolator(){}
-    CubicSplineInterpolator(const std::string& filename, int y_column_index) {
-        define(filename, y_column_index);
+    CubicSplineInterpolator(const std::string& filename, int x_column_index,int y_column_index) {
+        define(filename, x_column_index,y_column_index);
     }
 
-    void define(const std::string& filename, int y_column_index) {
+    void define(const std::string& filename,int x_column_index, int y_column_index) {
         // Read x and y values from the file
         std::ifstream file(filename);
         if (!file.is_open()) {
@@ -33,7 +33,7 @@ public:
 
             // Parse the line to extract x and y values
             while (iss >> value) {
-                if (column_index == 0) {
+                if (column_index == x_column_index) {
                     x = value;  // Store value as x (first column)
                 }
                 if (column_index == y_column_index) {
@@ -86,8 +86,10 @@ public:
 
     amrex::Real interpolate(amrex::Real x_interpolate) const {
         if (x_interpolate <= x_values.front()) {
+			//std::cerr << "Caution no datapoints for "<<x_interpolate<<" returning closest "<<y_values.front()<< std::endl; 
             return y_values.front();
         } else if (x_interpolate >= x_values.back()) {
+			//std::cerr << "Caution no datapoints for "<<x_interpolate<<" returning closest "<<y_values.back()<< std::endl; 
             return y_values.back();
         }
 
@@ -101,8 +103,8 @@ public:
            amrex::Real ans2 = y_values[i] + dx*(y_values[i+1] - y_values[i])/(x_values[i+1] - x_values[i]);
            if (ans2 < 1.0e-18L)
            {
-            //std::cerr << "Caution overshooting, include more data points, returning the average value" << std::endl; 
-            //std::cerr << "temp" <<x_interpolate<<"\t"<<"value"<< 0.5*(y_values[i] + y_values[i+1])<<std::endl; 
+           // std::cerr << "Caution overshooting, include more data points, returning the average value" << std::endl; 
+           // std::cerr << "temp" <<x_interpolate<<"\t"<<"value"<< 0.5*(y_values[i] + y_values[i+1])<<std::endl; 
             return 0.5*(y_values[i] + y_values[i+1]) ;
            }
            else{
@@ -141,7 +143,7 @@ private:
 //int main() {
     //// Example usage
     //std::string filename = "data.txt";
-    //CubicSplineInterpolator interpolator(filename, 11);
+    //CubicSplineInterpolator interpolator(filename,0, 11);
 
     //// Set precision for std::cout
     //std::cout << std::fixed << std::setprecision(std::numeric_limits<amrex::Real>::digits10 + 1);

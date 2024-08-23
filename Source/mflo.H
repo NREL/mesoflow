@@ -271,6 +271,8 @@ private:
     // checkpoint prefix and frequency
     std::string chk_file{"chk"};
     int chk_int = -1;
+    
+    Real current{0.0};
 };
 
 #endif

@@ -70,6 +70,8 @@ mflo::mflo()
     mflo_varnames[BX_INDX] = "bfieldx";
     mflo_varnames[BY_INDX] = "bfieldy";
     mflo_varnames[BZ_INDX] = "bfieldz";
+    
+     mflo_varnames[SIG_INDX] = "sigma";
 
     for(int i=0;i<NUM_SPECIES;i++)
     {
