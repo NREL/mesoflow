@@ -70,8 +70,8 @@ namespace mflo_user_funcs
         
         
            // fluid properties are computed as a weighted average based on species concentration
-           Real mu = mu_H2 * phi(i,j,k,H2_ID) + mu_CO * phi(i,j,k,CO_ID) + mu_H2O * phi(i,j,k,H2O_ID)+ mu_CO2 * phi(i,j,k,CO2_ID)+mu_N2 * phi(i,j,k,N2_ID);
-           Real k_mix = k_H2 * phi(i,j,k,H2_ID) + k_CO * phi(i,j,k,CO_ID) + k_H2O * phi(i,j,k,H2O_ID)+ k_CO2 * phi(i,j,k,CO2_ID)+k_N2 * phi(i,j,k,N2_ID);
+           Real mu = mu_H2 * phi(i,j,k,FLO_NVARS+H2_ID) + mu_CO * phi(i,j,k,FLO_NVARS+CO_ID) + mu_H2O * phi(i,j,k,FLO_NVARS+H2O_ID)+ mu_CO2 * phi(i,j,k,FLO_NVARS+CO2_ID)+mu_N2 * phi(i,j,k,FLO_NVARS+N2_ID);
+           Real k_mix = k_H2 * phi(i,j,k,FLO_NVARS+H2_ID) + k_CO * phi(i,j,k,FLO_NVARS+CO_ID) + k_H2O * phi(i,j,k,FLO_NVARS+H2O_ID)+ k_CO2 * phi(i,j,k,FLO_NVARS+CO2_ID)+k_N2 * phi(i,j,k,FLO_NVARS+N2_ID);
 
            // Assign the computed values to the transport coefficients
            transpcoeffs(i,j,k,VISC_INDX) = mu;
