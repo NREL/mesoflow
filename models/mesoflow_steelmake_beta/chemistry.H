@@ -34,13 +34,13 @@ namespace mflo_chem_reactions
             
             
 
-            // Reaction 1: Fe2O3 + H2 -> 2FeO + H2
+            // Reaction 1: Fe2O3 + H2 -> 2FeO + H2O
             amrex::Real kreac1 = 80.0*std::exp(-66516.0/phi(i,j,k,TEMP_INDX))*(3.0/rg); // Example reaction rate constant
             amrex::Real reactrate1 = kreac1 * phi(i, j, k, FLO_NVARS + Fe2O3_ID)/totalconc * phi(i, j, k, FLO_NVARS + H2_ID);
             specsource(i, j, k, FLO_NVARS + Fe2O3_ID) -= reactrate1;
             specsource(i, j, k, FLO_NVARS + H2_ID) -= reactrate1;
             specsource(i, j, k, FLO_NVARS + FeO_ID) += 2.0 * reactrate1;
-            specsource(i, j, k, FLO_NVARS + H2_ID) += reactrate1;
+            specsource(i, j, k, FLO_NVARS + H2O_ID) += reactrate1;
 
             // Reaction 2: FeO + H2 -> Fe + H2O
             amrex::Real kreac2 = 2857.34*std::exp(-11723.0/phi(i,j,k,TEMP_INDX))*(3.0/rg); // Example reaction rate constant

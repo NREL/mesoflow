@@ -33,6 +33,7 @@ namespace mflo_user_funcs
     extern AMREX_GPU_DEVICE_MANAGED Real H2molfrac;
     extern AMREX_GPU_DEVICE_MANAGED Real H2Omolfrac;
     extern AMREX_GPU_DEVICE_MANAGED Real COmolfrac;
+    extern AMREX_GPU_DEVICE_MANAGED Real CO2molfrac;
     extern AMREX_GPU_DEVICE_MANAGED Real N2molfrac;
     extern AMREX_GPU_DEVICE_MANAGED Real sponge_zone_dist;
 

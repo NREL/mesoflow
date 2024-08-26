@@ -16,6 +16,18 @@ using namespace amrex;
 namespace mflo_thermo
 {
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE Real
+get_solid_t_from_rhoe(Real rhoe)
+{
+    //https://webbook.nist.gov/cgi/cbook.cgi?ID=C1317608&Type=JANAFS&Table=on
+    // at 500 C, Cp is 131.7 J/mol/K = 131.7/160=0.82 J/g/K
+    //160 is molwt of Fe2O3
+    amrex::Real Cv_solid=820.0;
+    amrex::Real rho_solid=5240.0;
+    amrex::Real temp=rhoe/(rho_solid*Cv_solid);
+    //amrex::Print()<<"rhoe,temp:"<<rhoe<<"\t"<<temp<<"\n";
+    return(temp);
+}
 
 
 
@@ -45,24 +57,14 @@ get_solid_rhoe_from_t(Real temp)
             return(rho);
         }
 
-// // Get the concentration of background gas from the density and species concentrations
-//    AMREX_GPU_HOST_DEVICE AMREX_INLINE
-//        Real get_bgasconc_from_rc(Real rho,Real spec[NUM_SPECIES])
-//        {
-//            //this function is used only when there is background species
-//
-//            return(0.0);
-//        }
-
-
 //
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
     Real get_bgasconc_from_rc(Real rho,Real spec[NUM_SPECIES])
     {
         //this function is used only when there is background species
         //that is not being tracked
-        Real c_bg_gas = spec[N2_ID];
-        return(c_bg_gas);
+       // Real c_bg_gas = spec[N2_ID];
+        return(0.0);
     }
 
 
@@ -79,6 +81,34 @@ AMREX_GPU_HOST_DEVICE AMREX_INLINE
     return(pres/(sum_ci*RU));
   }
  
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+ Real get_p_from_rec(Real rhoe,Real rho,Real spec[NUM_SPECIES])
+ {
+     Real gamma_N2=1.4;
+     Real gamma_H2=1.4;
+     Real gamma_H2O=1.3;
+     Real gamma_CO=1.4;
+     Real gamma_CO2=1.3;
+
+     Real cv_H2=RU/(gamma_H2-one); //J/K/mol
+     Real cv_N2=RU/(gamma_N2-one); //J/K/mol
+     Real cv_H2O=RU/(gamma_H2O-one); //J/K/mol
+     Real cv_CO=RU/(gamma_CO-one); //J/K/mol
+     Real cv_CO2=RU/(gamma_CO2-one); //J/K/mol
+
+     Real T;
+
+     T=rhoe/(cv_H2*spec[H2_ID]+cv_CO*spec[CO_ID]+cv_H2O*spec[H2O_ID]+cv_CO2*spec[CO2_ID])+cv_N2*spec[N2_ID];
+
+     Real p=zeroval;
+     for(int sp=0;sp<NUM_SPECIES;sp++)
+     {
+         p += spec[sp]*RU*T;
+     }
+
+     return(p);
+ }
 
 
 
@@ -115,62 +145,13 @@ AMREX_GPU_HOST_DEVICE AMREX_INLINE
          term2 += x_i[sp]/(gamma_spec[sp]-one);
      }
 
-     Real gamma_mix=one+pow(term2,-one);
+     Real gama_mix=one+pow(term2,-one);
 
-     return(gamma_mix);
+     return(gama_mix);
      
  }
 
-// // Calculate the pressure from internal energy, density, and species concentrations
-//    AMREX_GPU_HOST_DEVICE AMREX_INLINE
-//        Real get_p_from_rec(Real rhoe,Real rho,Real spec[NUM_SPECIES])
-//        {
-//            return(rhoe*(gamma_mix-one));
-//        }
-
-
-
-// // Calculate the internal energy from density, pressure, and species concentrations
-//    AMREX_GPU_HOST_DEVICE AMREX_INLINE
-//        Real get_e_from_rpc(Real rho,Real pres,Real spec[NUM_SPECIES])
-//        {
-//            return( pres/(gamma_mix-one)/rho );
-//        }
-
-
-
-
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    Real get_p_from_rec(Real rhoe,Real rho,Real spec[NUM_SPECIES])
-    {
-        Real gamma_N2=1.4;
-        Real gamma_H2=1.4;
-        Real gamma_H2O=1.3;
-        Real gamma_CO=1.4;
-        Real gamma_CO2=1.3;
-        
-        
-
-
-        Real cv_H2=RU/(gamma_H2-one); //J/K/mol
-        Real cv_N2=RU/(gamma_N2-one); //J/K/mol
-        Real cv_H2O=RU/(gamma_H2O-one); //J/K/mol
-        Real cv_CO=RU/(gamma_CO-one); //J/K/mol
-        Real cv_CO2=RU/(gamma_CO2-one); //J/K/mol
-
-        Real T;
-
-        T=rhoe/(cv_H2*spec[H2_ID]+cv_CO*spec[CO_ID]+cv_H2O*spec[H2O_ID]+cv_CO2*spec[CO2_ID])+cv_N2*spec[N2_ID];
-
-        Real p=zeroval;
-        for(int sp=0;sp<NUM_SPECIES;sp++)
-        {
-            p += spec[sp]*RU*T;
-        }
-
-        return(p);
-    }
-
+ 
 
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
