@@ -86,6 +86,9 @@ void initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomda
                              }
                          }
                      }
+                    
+                    
+    //
 
                     vfrac*=eighth;
                     
@@ -96,25 +99,27 @@ void initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomda
           //Initialization of Physical Variables
                     phi(i,j,k,PRES_INDX) = mflo_user_funcs::pres_left;
                  //   phi(i,j,k,DENS_INDX) = mflo_user_funcs::dens_left;
-                    phi(i,j,k,TEMP_INDX) = mflo_user_funcs::temp_left;
+                 //   phi(i,j,k,TEMP_INDX) = mflo_user_funcs::temp_left;
                     phi(i,j,k,VELX_INDX) =  zeroval;
-                    phi(i,j,k,VELY_INDX) =  mflo_user_funcs::fs_vel;
                     phi(i,j,k,VELZ_INDX) =  zeroval;
 
                 
                     
                    //use later, temp for gas & solid
-                                    if(vfrac>zeroval)
+                                    if(vfrac>zeroval) //gas
                                     {
                                         phi(i,j,k,TEMP_INDX) = mflo_user_funcs::temp_left;
+                                        phi(i,j,k,VELY_INDX) =  mflo_user_funcs::fs_vel;
+                                        phi(i,j,k,DENS_INDX) = phi(i,j,k,PRES_INDX)/RU/phi(i,j,k,TEMP_INDX)*mwbar;
                                     }
-                                    else
+                                    else//solid
                                     {
-                                        phi(i,j,k,TEMP_INDX)=mflo_user_funcs::temp_left;
+                                        phi(i,j,k,TEMP_INDX)=mflo_user_funcs::temp_solid;
+                                        phi(i,j,k,VELY_INDX) =zeroval;
+                                        phi(i,j,k,DENS_INDX) = 5240;
                                     }
 
-                    //density
-                    phi(i,j,k,DENS_INDX) = phi(i,j,k,PRES_INDX)/RU/phi(i,j,k,TEMP_INDX)*mwbar;
+
                     
                     phi(i,j,k,RHO_INDX)  = phi(i,j,k,DENS_INDX);
                     

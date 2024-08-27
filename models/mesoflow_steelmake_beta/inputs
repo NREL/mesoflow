@@ -19,7 +19,7 @@ amr.max_grid_size   = 32
 amr.regrid_int      = 10       # how often to regrid
 
 # TIME STEP CONTROL
-mflo.cfl            = 0.1     # cfl number for hyperbolic system
+mflo.cfl            = 0.001     # cfl number for hyperbolic system
                              # In this test problem, the velocity is
 			     # time-dependent.  We could use 0.9 in
 			     # the 3D test, but need to use 0.7 in 2D
@@ -37,8 +37,15 @@ mflo.hi_bc = 6 3 6
 
 
 
+mflo.order_hyp = 5
+#mflo.dissfactor = 0.1
+mflo.potential_solve = 0
+mflo.potential_solve_int = 1
+mflo.magnetic_potential_solve=0
+mflo.magnetic_pot_solve_int=1
 
-#should I add? 
+
+#
 mflo.potsolve.max_iter=2000
 mflo.potsolve.reltol=1e-7
 mflo.potsolve.abstol=1e-8
@@ -99,7 +106,7 @@ mflo.vely_refinegrad = 1e20
 
 # PLOTFILES
 amr.plot_file  = plt    # root name of plot file
-amr.plot_int   = 100     # number of timesteps between plot files
+amr.plot_int   = 1     # number of timesteps between plot files
 
 # CHECKPOINT
 amr.chk_file = chk      # root name of checkpoint file
@@ -108,11 +115,13 @@ amr.chk_int  = -1       # number of timesteps between checkpoint files
 user.pres_left=1.01e5
 user.pres_right=1.01e5
 user.temp_left= 1123.15
+user.temp_solid= 300
 user.fs_vel=0.017
-user.H2molfrac=0.267
+user.H2molfrac=0.3
 user.H2Omolfrac=0.0
-user.COmolfrac=0.067
+user.COmolfrac=0.0
 user.N2molfrac=0.666
 
+mflo.conjugate_heat_transfer=0
 
-mflo.species_in_solid=1
+mflo.species_in_solid=0

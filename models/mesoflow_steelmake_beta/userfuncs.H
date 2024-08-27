@@ -27,6 +27,7 @@ namespace mflo_user_funcs
     extern AMREX_GPU_DEVICE_MANAGED Real siteconc;
     extern AMREX_GPU_DEVICE_MANAGED Real pres_left;
     extern AMREX_GPU_DEVICE_MANAGED Real temp_left;
+    extern AMREX_GPU_DEVICE_MANAGED Real temp_solid;
     extern AMREX_GPU_DEVICE_MANAGED Real pres_right;
     extern AMREX_GPU_DEVICE_MANAGED Real dens_left;
     extern AMREX_GPU_DEVICE_MANAGED Real fs_vel;
@@ -70,8 +71,8 @@ namespace mflo_user_funcs
         
         
            // fluid properties are computed as a weighted average based on species concentration
-           Real mu = mu_H2 * phi(i,j,k,FLO_NVARS+H2_ID) + mu_CO * phi(i,j,k,FLO_NVARS+CO_ID) + mu_H2O * phi(i,j,k,FLO_NVARS+H2O_ID)+ mu_CO2 * phi(i,j,k,FLO_NVARS+CO2_ID)+mu_N2 * phi(i,j,k,FLO_NVARS+N2_ID);
-           Real k_mix = k_H2 * phi(i,j,k,FLO_NVARS+H2_ID) + k_CO * phi(i,j,k,FLO_NVARS+CO_ID) + k_H2O * phi(i,j,k,FLO_NVARS+H2O_ID)+ k_CO2 * phi(i,j,k,FLO_NVARS+CO2_ID)+k_N2 * phi(i,j,k,FLO_NVARS+N2_ID);
+           Real mu = mu_H2 *mflo_user_funcs::H2molfrac + mu_CO * mflo_user_funcs::COmolfrac + mu_H2O * mflo_user_funcs::H2Omolfrac+ mu_CO2 * mflo_user_funcs::CO2molfrac+mu_N2 * mflo_user_funcs::N2molfrac;
+           Real k_mix = k_H2 * mflo_user_funcs::H2molfrac + k_CO * mflo_user_funcs::COmolfrac + k_H2O * mflo_user_funcs::H2Omolfrac+ k_CO2 * mflo_user_funcs::CO2molfrac+k_N2 * mflo_user_funcs::N2molfrac;
 
            // Assign the computed values to the transport coefficients
            transpcoeffs(i,j,k,VISC_INDX) = mu;

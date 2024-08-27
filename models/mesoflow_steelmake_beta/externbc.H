@@ -120,7 +120,7 @@ void externalbc(const amrex::Real x[AMREX_SPACEDIM],
 //                         s_ext[VELZ_INDX]*s_ext[VELZ_INDX]);
 //
 
-            
+            Real spec[NUM_SPECIES]={zeroval};
             
             
             s_ext[PRES_INDX] = s_int[PRES_INDX];
@@ -138,10 +138,22 @@ void externalbc(const amrex::Real x[AMREX_SPACEDIM],
             s_ext[VFRAC_INDX] = s_int[VFRAC_INDX];
           //  s_ext[TEMP_INDX]=mflo_user_funcs::Tsolid;
             
-//            for(int sp=0;sp<NUM_SPECIES;sp++)
-//                        {
-//                            s_ext[FLO_NVARS+sp]=spec[sp];
-//                        }
+        
+            Real totalconc=s_ext[PRES_INDX]/RU/s_ext[TEMP_INDX];
+            
+            
+            spec[H2_ID] = totalconc*mflo_user_funcs::H2molfrac;
+            spec[N2_ID] = totalconc*mflo_user_funcs::N2molfrac;
+            spec[H2O_ID] = totalconc*mflo_user_funcs::H2Omolfrac;
+            spec[CO_ID] = totalconc*mflo_user_funcs::COmolfrac;
+            spec[CO2_ID] = totalconc*mflo_user_funcs::CO2molfrac;
+            
+    
+ 
+            for(int sp=0;sp<NUM_SPECIES;sp++)
+                        {
+                            s_ext[FLO_NVARS+sp]=spec[sp];
+                        }
                        
             
             

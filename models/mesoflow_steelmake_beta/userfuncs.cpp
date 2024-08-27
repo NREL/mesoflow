@@ -23,12 +23,13 @@ namespace mflo_user_funcs
     AMREX_GPU_DEVICE_MANAGED Real pres_right      = 1e5;
    // AMREX_GPU_DEVICE_MANAGED Real dens_left       = 2.32;
     AMREX_GPU_DEVICE_MANAGED Real temp_left       = 0.0;
+    AMREX_GPU_DEVICE_MANAGED Real temp_solid      = 0.0;
     AMREX_GPU_DEVICE_MANAGED Real fs_vel          = 0.0;
     AMREX_GPU_DEVICE_MANAGED Real H2molfrac       = 0.2;
     AMREX_GPU_DEVICE_MANAGED Real H2Omolfrac      = 0.0;
     AMREX_GPU_DEVICE_MANAGED Real COmolfrac       = 0.0;
     AMREX_GPU_DEVICE_MANAGED Real N2molfrac       = 0.0;
-    AMREX_GPU_DEVICE_MANAGED Real CO2molfrac       = 0.0;
+    AMREX_GPU_DEVICE_MANAGED Real CO2molfrac      = 0.0;
 
 
  //   AMREX_GPU_DEVICE_MANAGED Real spec_left[NUM_SPECIES] = {one};
@@ -47,6 +48,7 @@ namespace mflo_user_funcs
         pp.query("pres_left",pres_left);
         pp.query("pres_right",pres_right);
         pp.query("temp_left",temp_left);
+        pp.query("temp_solid",temp_solid);
       //  pp.query("dens_left",dens_left);
         pp.query("fs_vel",fs_vel);
         pp.query("H2molfrac",H2molfrac);

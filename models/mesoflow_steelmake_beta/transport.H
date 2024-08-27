@@ -36,15 +36,21 @@ namespace mflo_chem_transport
             Real D_CO2_gas   = 1.39e-5;
             Real D_N2_gas   = 1.88e-5;
             
-            Real D_Fe2O3 = 1.0e-9;
-            Real D_FeO   = 1.0e-9;
-            Real D_Fe    = 1.0e-9;
+            Real D_Fe2O3 = 1.0e-12;
+            Real D_FeO   = 1.0e-12;
+            Real D_Fe    = 1.0e-12;
             
             Real D_H2_solid=D_H2_gas*eps/tort;
             Real D_CO_solid=D_CO_gas*eps/tort;
             Real D_H2O_solid=D_H2O_gas*eps/tort;
             Real D_CO2_solid=D_CO2_gas*eps/tort;
             Real D_N2_solid=D_N2_gas*eps/tort;
+            
+//            
+//            for(int sp=0;sp<NUM_GAS_SPECIES;sp++)
+//                {
+//                   dcoeff(i,j,k,sp)=gasfrac*1e-5+solfrac*1e-8;
+//                }
             
             
             Real sponge_fac=0.5*(1+std::tanh((amrex::Math::abs(y)-mflo_user_funcs::sponge_zone_dist)/lscale));
