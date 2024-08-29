@@ -1,0 +1,16 @@
+ 0: amrex::BLBackTrace::print_backtrace_info(__sFILE*) (in mesoflow3d.llvm.ex) (AMReX_BLBackTrace.cpp:189)
+
+ 1: amrex::BLBackTrace::handler(int) (in mesoflow3d.llvm.ex) (AMReX_BLBackTrace.cpp:99)
+
+ 2: mflo::compute_dsdt_flow(int, int, amrex::MultiFab&, amrex::MultiFab&, double, double, double, bool) (in mesoflow3d.llvm.ex) (mflo_evolve.cpp:845)
+
+ 3: mflo::Advance_coupled_strang(int, double, double, int, int, bool) (in mesoflow3d.llvm.ex) (mflo_evolve.cpp:421)
+
+ 4: mflo::timeStep(int, double, int, bool) (in mesoflow3d.llvm.ex) (mflo_evolve.cpp:361)
+
+ 5: mflo::EvolveAMR(double, bool) (in mesoflow3d.llvm.ex) (mflo_evolve.cpp:84)
+
+ 6: main (in mesoflow3d.llvm.ex) (main.cpp:57)
+
+ 7: start (in dyld) + 2476
+
